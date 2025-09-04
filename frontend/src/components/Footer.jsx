@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import Chatbot from './Chatbot';
 
 const Footer = () => {
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+
+  const toggleChatbot = () => {
+    setIsChatbotOpen(!isChatbotOpen);
+  };
+
   const footerLinks = {
     Products: [
       'Sales CRM',
@@ -177,22 +184,46 @@ const Footer = () => {
           </div>
         </motion.div>
 
-        {/* Floating CTA */}
+        {/* Floating Chatbot Button */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           whileInView={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.8 }}
           viewport={{ once: true }}
-          className="fixed bottom-6 right-6 z-50"
+          className="fixed bottom-6 right-6 z-40"
         >
           <motion.button
+            onClick={toggleChatbot}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="w-14 h-14 bg-gradient-to-r from-slate-500 to-slate-800 rounded-full shadow-2xl flex items-center justify-center text-white text-xl hover:shadow-3xl transition-all duration-300"
+            className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white text-xl hover:shadow-3xl transition-all duration-300 ${
+              isChatbotOpen 
+                ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                : 'bg-gradient-to-r from-primary-500 to-purple-600'
+            }`}
           >
-            Z
+            {isChatbotOpen ? (
+              <span className="text-lg">×</span>
+            ) : (
+              <span className="text-lg">💬</span>
+            )}
           </motion.button>
+          
+          {/* Notification badge for new users */}
+          {!isChatbotOpen && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 2, type: "spring" }}
+              className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"
+            >
+              <span className="text-xs text-white font-bold">!</span>
+            </motion.div>
+          )}
         </motion.div>
+
+        {/* Chatbot Component */}
+        <Chatbot isOpen={isChatbotOpen} onToggle={toggleChatbot} />
       </div>
     </footer>
   );

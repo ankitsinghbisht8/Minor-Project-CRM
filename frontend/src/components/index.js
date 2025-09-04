@@ -8,3 +8,4 @@ export { default as Testimonials } from './Testimonials';
 export { default as CallToAction } from './CallToAction';
 export { default as Footer } from './Footer';
 export { default as LandingPage } from './LandingPage';
+export { default as Chatbot } from './Chatbot';
