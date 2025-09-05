@@ -8,7 +8,7 @@ import { ResponsiveHeatMap } from '@nivo/heatmap'
 import { ResponsiveChoropleth } from '@nivo/geo'
 import { ResponsiveFunnel } from '@nivo/funnel'
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card'
-import worldFeatures from '../../../../../public/world_countries.json'
+// import worldFeatures from '../../../../../public/world_countries.json'
 
 const ChartBody = ({ type, data, height, onElementClick }) => {
   const commonTheme = {
