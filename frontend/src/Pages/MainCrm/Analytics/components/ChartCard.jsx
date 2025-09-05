@@ -5,10 +5,13 @@ import { ResponsiveBar } from '@nivo/bar'
 import { ResponsivePie } from '@nivo/pie'
 import { ResponsiveAreaBump } from '@nivo/bump'
 import { ResponsiveHeatMap } from '@nivo/heatmap'
-import { ResponsiveChoropleth } from '@nivo/geo'
 import { ResponsiveFunnel } from '@nivo/funnel'
+import { ResponsiveScatterPlot } from '@nivo/scatterplot'
 import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/card'
+<<<<<<< HEAD
 // import worldFeatures from '../../../../../public/world_countries.json'
+=======
+>>>>>>> a9c281fc7e217cf3125d1825470da1376de63982
 
 const ChartBody = ({ type, data, height, onElementClick }) => {
   const commonTheme = {
@@ -101,28 +104,6 @@ const ChartBody = ({ type, data, height, onElementClick }) => {
       </div>
     )
   }
-  if (type === 'choropleth') {
-    return (
-      <div style={{ height }}>
-        <ResponsiveChoropleth
-          data={data.data}
-          features={data.features}
-          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-          colors="nivo"
-          domain={[0, Math.max(...data.data.map(d => d.value || 0)) || 100]}
-          unknownColor="#f0f0f0"
-          label="properties.name"
-          valueFormat=">.2f"
-          projectionScale={110}
-          projectionTranslation={[0.5, 0.6]}
-          projectionRotation={[0, 0, 0]}
-          borderWidth={0.5}
-          borderColor="#888"
-          theme={commonTheme}
-        />
-      </div>
-    )
-  }
   if (type === 'funnel') {
     return (
       <div style={{ height }}>
@@ -136,6 +117,31 @@ const ChartBody = ({ type, data, height, onElementClick }) => {
       </div>
     )
   }
+  if (type === 'bubble') {
+    return (
+      <div style={{ height }}>
+        <ResponsiveScatterPlot
+          data={[{ id: 'Campaigns', data: data.map(d => ({ x: d.x, y: d.y, size: d.size, id: d.id })) }]}
+          margin={{ top: 20, right: 20, bottom: 50, left: 60 }}
+          blendMode="multiply"
+          theme={commonTheme}
+          colors={{ scheme: 'set2' }}
+          nodeSize={n => Math.max(6, Math.min(40, n.data.size))}
+          axisBottom={{ legend: 'CTR %', legendOffset: 36, legendPosition: 'middle' }}
+          axisLeft={{ legend: 'Conversion %', legendOffset: -44, legendPosition: 'middle' }}
+          tooltip={({ node }) => (
+            <div style={{ background: 'white', padding: 6, border: '1px solid #eee', fontSize: 12 }}>
+              <div><strong>{node.data.id}</strong></div>
+              <div>CTR: {node.data.x}%</div>
+              <div>Conversion: {node.data.y}%</div>
+              <div>Cost: ${node.data.size}k</div>
+            </div>
+          )}
+        />
+      </div>
+    )
+  }
+  
   return null
 }
 

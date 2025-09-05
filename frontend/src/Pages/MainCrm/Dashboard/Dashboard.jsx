@@ -6,6 +6,8 @@ import QueryStats from '@mui/icons-material/QueryStats'
 import Group from '@mui/icons-material/Group'
 import Settings from '@mui/icons-material/Settings'
 import Notifications from '@mui/icons-material/Notifications'
+import ViewList from '@mui/icons-material/ViewList'
+import Tune from '@mui/icons-material/Tune'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import Logout from '@mui/icons-material/Logout'
@@ -20,6 +22,8 @@ const DashBoard = () => {
       { label: 'Dashboard', to: '/dashboard', Icon: DashboardIcon },
       { label: 'Analytics', to: '/dashboard/analytics', Icon: QueryStats },
       { label: 'Users', to: '/dashboard/users', Icon: Group },
+      { label: 'Segments', to: '/dashboard/segments', Icon: ViewList },
+      { label: 'Segment Builder', to: '/dashboard/segments/builder', Icon: Tune },
       { label: 'Settings', to: '/dashboard/settings', Icon: Settings },
       { label: 'Notifications', to: '/dashboard/notifications', Icon: Notifications },
     ],
@@ -43,7 +47,7 @@ const DashBoard = () => {
             <li key={label}>
               <NavLink
                 to={to}
-                end={to === '/dashboard'}
+                end={to === '/dashboard' || to === '/dashboard/segments'}
                 className={({ isActive }) =>
                   [
                     'group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200',

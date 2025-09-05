@@ -25,11 +25,11 @@ import {
   responseTimeHistogram,
   demographicsBreakdown,
   geoAudienceHeatmap,
-  geoAudienceChoropleth,
   churnTrend,
   kpiSparks,
   campaignsTable,
   segmentsTable,
+  roiBubbleData,
 } from './data/mock'
 
 // Analytics dashboard page: responsive layout with header, KPIs, charts, insights, and data table.
@@ -76,7 +76,6 @@ const Analytics = () => {
       responseTimeHistogram: responseTimeHistogram(),
       demographicsBreakdown: demographicsBreakdown(),
       geoAudienceHeatmap: geoAudienceHeatmap(),
-      geoAudienceChoropleth: geoAudienceChoropleth(),
       churnTrend: churnTrend(),
       kpiSparks: kpiSparks(),
     }),
@@ -151,7 +150,7 @@ const Analytics = () => {
         )}
         {group === 'audience' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Geo Audience (World)" type="choropleth" data={charts.geoAudienceChoropleth} height={380} />
+            <ChartCard title="Geo Audience Heatmap" type="heatmap" data={charts.geoAudienceHeatmap} height={360} />
             <ChartCard title="Demographics" type="pie" data={charts.demographicsBreakdown} height={360} />
           </div>
         )}
@@ -165,6 +164,7 @@ const Analytics = () => {
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ChartCard title="A/B Testing Results" type="bar" data={charts.campaignComparison} height={360} />
             <ChartCard title="Predictive Conversion Forecast" type="line" data={charts.engagementTrendMulti} height={360} />
+            <ChartCard title="Campaign ROI (Bubble)" type="bubble" data={roiBubbleData()} height={360} />
           </div>
         )}
 

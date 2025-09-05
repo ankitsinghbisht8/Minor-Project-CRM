@@ -234,4 +234,34 @@ export const geoAudienceChoropleth = () => ([
   { id: 'AUS', value: 38 },
 ])
 
+// ROI bubble data: x=CTR%, y=Conv%, size=Cost (k$)
+export const roiBubbleData = () => ([
+  { id: 'Spring Promo', x: 7.4, y: 3.2, size: 65, color: '#6366f1' },
+  { id: 'Summer Boost', x: 5.1, y: 2.6, size: 40, color: '#14b8a6' },
+  { id: 'Fall Save', x: 6.0, y: 2.8, size: 35, color: '#f59e0b' },
+  { id: 'Holiday Blast', x: 9.2, y: 4.6, size: 90, color: '#ef4444' },
+])
+
+// Simple Sankey-like layers
+export const userJourneySankey = () => ({
+  layers: [
+    { id: 'Segment', nodes: ['Power Users', 'Trial'] },
+    { id: 'Campaign', nodes: ['Spring Promo', 'Holiday Blast'] },
+    { id: 'Channel', nodes: ['Email', 'SMS', 'WhatsApp'] },
+    { id: 'Engagement', nodes: ['Opened', 'Clicked'] },
+    { id: 'Conversion', nodes: ['Converted'] },
+  ],
+  links: [
+    { source: ['Segment', 'Power Users'], target: ['Campaign', 'Spring Promo'], value: 120 },
+    { source: ['Segment', 'Trial'], target: ['Campaign', 'Spring Promo'], value: 80 },
+    { source: ['Segment', 'Power Users'], target: ['Campaign', 'Holiday Blast'], value: 60 },
+    { source: ['Campaign', 'Spring Promo'], target: ['Channel', 'Email'], value: 140 },
+    { source: ['Campaign', 'Holiday Blast'], target: ['Channel', 'WhatsApp'], value: 60 },
+    { source: ['Channel', 'Email'], target: ['Engagement', 'Opened'], value: 150 },
+    { source: ['Channel', 'Email'], target: ['Engagement', 'Clicked'], value: 60 },
+    { source: ['Channel', 'WhatsApp'], target: ['Engagement', 'Opened'], value: 50 },
+    { source: ['Engagement', 'Clicked'], target: ['Conversion', 'Converted'], value: 70 },
+  ],
+})
+
 
