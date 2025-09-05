@@ -1,12 +1,32 @@
-import React from 'react';
-import LandingPage from './components/LandingPage';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LandingPage from "./Pages/LandingPage";
+import Register from "./Pages/Authentication/Register";
+import "./App.css";
+import Dashboard from "./Pages/MainCrm/Dashboard/Dashboard";
+import Overview from "./Pages/MainCrm/Dashboard/Overview";
+import Analytics from "./Pages/MainCrm/Analytics/Analytics";
+import Users from "./Pages/MainCrm/Users/Users";
+import Settings from "./Pages/MainCrm/Settings/Settings";
+import Notifications from "./Pages/MainCrm/Notifications/Notifications";
 
 function App() {
   return (
-    <div className="App">
-      <LandingPage />
-    </div>
+    <BrowserRouter>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<Dashboard />}>
+            <Route index element={<Overview />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="users" element={<Users />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="notifications" element={<Notifications />} />
+          </Route>
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
