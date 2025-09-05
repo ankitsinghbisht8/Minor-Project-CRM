@@ -9,6 +9,8 @@ import Analytics from "./Pages/MainCrm/Analytics/Analytics";
 import Users from "./Pages/MainCrm/Users/Users";
 import Settings from "./Pages/MainCrm/Settings/Settings";
 import Notifications from "./Pages/MainCrm/Notifications/Notifications";
+import Segments from "./Pages/MainCrm/Segments/Segments";
+import SegmentBuilder from "./Pages/MainCrm/Segments/SegmentBuilder";
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route index element={<Overview />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="users" element={<Users />} />
+            <Route path="segments" element={<Segments />} />
+            <Route path="segments/builder" element={<SegmentBuilder />} />
             <Route path="settings" element={<Settings />} />
             <Route path="notifications" element={<Notifications />} />
           </Route>
