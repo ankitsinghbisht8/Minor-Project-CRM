@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search, Users, Calendar, Target, MoreVertical } from "lucide-react";
-import SegmentTable from "../../../components/SegmentTable/SegmentTable";
-import CreateSegmentModal from "../../../components/CreateSegmentModal/CreateSegmentModal";
-import { segmentsData } from "../../../data/segmentsData";
+import { Plus, Filter, Search, Users, Calendar, Target } from "lucide-react";
+import SegmentTable from "../../../components/SegmentTable/SegmentTable.jsx";
+import CreateSegmentModal from "../../../components/CreateSegmentModal/CreateSegmentModal.jsx";
+import { segmentsData } from "../../data/segmentsData.js";
 import "./Segments.css";
 
 const Segments = () => {
