@@ -12,7 +12,7 @@ export const KpiCard = ({ title, value, delta, tone = 'up', index = 0, spark = n
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.05 * index }}
     >
-      <Card className="bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <Card className="bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/60 dark:border-white/10 shadow-[-10px_12px_28px_rgba(0,0,0,0.10)] ring-1 ring-white/40 dark:ring-white/5 hover:shadow-[12px_-10px_28px_rgba(0,0,0,0.14)] transition-shadow duration-300">
         <CardContent className="p-5">
           <p className="text-sm text-gray-500">{title}</p>
           <div className="mt-2 flex items-baseline gap-2">
