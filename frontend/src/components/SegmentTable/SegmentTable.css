@@ -6,6 +6,9 @@
 .table-wrapper {
   overflow-x: auto;
 }
+.table-wrapper::-webkit-scrollbar {
+  display: none;
+}
 
 .segment-table {
   width: 100%;

@@ -146,7 +146,7 @@ const CreateSegmentModal = ({ onClose, onSubmit }) => {
           <div className="form-section">
             <h3>Basic Information</h3>
             <div className="form-group">
-              <label htmlFor="name">Segment Name *</label>
+              <label htmlFor="name">Segment Name {<span className="text-red-500">*</span>}</label>
               <input
                 type="text"
                 id="name"

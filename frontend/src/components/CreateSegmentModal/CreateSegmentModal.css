@@ -23,7 +23,9 @@
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   animation: modalSlideIn 0.3s ease-out;
 }
-
+.modal-container::-webkit-scrollbar {
+  display: none;
+}
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -66,7 +68,7 @@
 }
 
 .modal-form {
-  padding: 2rem;
+  padding: 1rem 2rem;
 }
 
 /* Form Sections */
