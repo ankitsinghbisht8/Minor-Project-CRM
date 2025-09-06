@@ -1,0 +1,372 @@
+/* Segment Table Styles */
+.segment-table-container {
+  width: 100%;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+.table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.segment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.segment-table thead {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.segment-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+}
+
+.table-row:hover {
+  background: #f8fafc;
+}
+
+.segment-table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+/* Segment Name Cell */
+.segment-name-cell {
+  min-width: 200px;
+}
+
+.segment-name {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.segment-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  background: linear-gradient(to right, #fdba74, #f472b6, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.segment-name .name {
+  font-weight: 600;
+  color: #1a202c;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.segment-name .segment-id {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: block;
+}
+
+/* Rules Cell */
+.rules-cell {
+  max-width: 300px;
+}
+
+.rules-text {
+  color: #4b5563;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Audience Size Cell */
+.audience-size-cell {
+  text-align: center;
+  min-width: 120px;
+}
+
+.audience-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 60px;
+  justify-content: center;
+}
+
+.audience-badge.high {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.audience-badge.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.audience-badge.low {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Created Cell */
+.created-cell {
+  min-width: 120px;
+}
+
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.813rem;
+}
+
+/* Status Cell */
+.status-cell {
+  min-width: 100px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.paused {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.inactive {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Actions Cell */
+.actions-cell {
+  min-width: 200px;
+  text-align: right;
+}
+
+.actions-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.action-btn.primary {
+  /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+  background: linear-gradient(to right, #fdba74, #f472b6, #a855f7);
+  color: white;
+  border-color: transparent;
+}
+
+.action-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px 0 rgba(102, 126, 234, 0.25);
+}
+
+.action-btn.secondary {
+  background: white;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.action-btn.secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Dropdown */
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 50;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  min-width: 150px;
+  margin-top: 0.25rem;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #f8fafc;
+}
+
+.dropdown-item:first-child {
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.dropdown-item:last-child {
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.dropdown-item.delete {
+  color: #dc2626;
+}
+
+.dropdown-item.delete:hover {
+  background: #fef2f2;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .actions-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .segment-table {
+    font-size: 0.8125rem;
+  }
+
+  .segment-table th,
+  .segment-table td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .segment-name {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .segment-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .rules-cell {
+    max-width: 200px;
+  }
+
+  .actions-container {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .action-btn {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .table-wrapper {
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+  }
+
+  .segment-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .segment-table thead,
+  .segment-table tbody,
+  .segment-table th,
+  .segment-table td,
+  .table-row {
+    display: block;
+  }
+
+  .segment-table thead {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .table-row {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    white-space: normal;
+  }
+
+  .segment-table td {
+    border: none;
+    position: relative;
+    padding: 0.5rem 0;
+  }
+
+  .segment-table td:before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: #374151;
+    display: inline-block;
+    width: 120px;
+  }
+}
