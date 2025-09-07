@@ -20,18 +20,8 @@ passport.use(new GoogleStrategy({
 
         // Check if user already exists with this Google ID
         let user = await Users.findOne({ where: { googleSub: googleId } });
+        console.log(user);
 
-        
-        //Create Refresh Token
-        const refreshToken = jwt.sign(
-            { 
-                id: user.id, 
-                email: user.email, 
-                role: user.role 
-            },
-            process.env.JWT_REFRESH_SECRET,
-            { expiresIn: process.env.JWT_REFRESH_SECRET_EXPIRES_IN || '7d' }
-        );
         
         if (user) {
             // Update existing user
@@ -74,6 +64,16 @@ passport.use(new GoogleStrategy({
                 console.log('Created new Google user:', user.email);
             }
         }
+        //Create Refresh Token
+        const refreshToken = jwt.sign(
+            { 
+                id: user.id, 
+                email: user.email, 
+                role: user.role 
+            },
+            process.env.JWT_REFRESH_SECRET,
+            { expiresIn: process.env.JWT_REFRESH_SECRET_EXPIRES_IN || '7d' }
+        );
 
         // Return user data with token
         return done(null, {
@@ -82,7 +82,8 @@ passport.use(new GoogleStrategy({
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                profilePicture: user.profilePicture            },
+                profilePicture: user.profilePicture
+            },
             refreshToken: refreshToken
         });
 

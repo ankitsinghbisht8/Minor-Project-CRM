@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Filter, Search, Users, Calendar, Target } from "lucide-react";
+import axios from "axios";
 import SegmentTable from "../../../components/SegmentTable/SegmentTable.jsx";
 import CreateSegmentModal from "../../../components/CreateSegmentModal/CreateSegmentModal.jsx";
-import { segmentsData } from "../../data/segmentsData.js";
 import { useDarkMode } from "../../../contexts/DarkModeContext";
 import "./Segments.css";
 
@@ -15,17 +15,45 @@ const Segments = () => {
   const [filterBy, setFilterBy] = useState("all");
   const { isDarkMode } = useDarkMode();
 
-  // Simulate API call
+  // Load computed segments from backend and group by label
   useEffect(() => {
     const fetchSegments = async () => {
       try {
         setLoading(true);
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setSegments(segmentsData);
-        setFilteredSegments(segmentsData);
+        const base = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+        const res = await axios.get(`${base}/api/dashboard/segments`, { withCredentials: true });
+        const rows = Array.isArray(res.data) ? res.data : [];
+
+        const grouped = rows.reduce((acc, r) => {
+          const key = r.segment || 'Regular';
+          if (!acc[key]) acc[key] = [];
+          acc[key].push(r);
+          return acc;
+        }, {});
+
+        const rulesText = {
+          'VIP': "total_spend > 20000 AND num_orders > 10 AND days_since_last_order < 30",
+          'Loyal': "total_spend > 10000 AND num_orders > 5",
+          'Churn Risk': "days_since_last_order > 180",
+          'Regular': "everyone else"
+        };
+
+        const today = new Date().toISOString().split('T')[0];
+        const built = Object.entries(grouped).map(([name, list], idx) => ({
+          id: idx + 1,
+          name,
+          rules: rulesText[name] || '—',
+          audienceSize: list.length,
+          created: today,
+          status: 'active'
+        }));
+
+        setSegments(built);
+        setFilteredSegments(built);
       } catch (error) {
         console.error("Error fetching segments:", error);
+        setSegments([]);
+        setFilteredSegments([]);
       } finally {
         setLoading(false);
       }
