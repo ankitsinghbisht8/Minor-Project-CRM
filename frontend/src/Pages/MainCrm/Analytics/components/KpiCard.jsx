@@ -4,7 +4,7 @@ import { Card, CardContent } from '../../../../components/ui/card'
 import { ResponsiveLine } from '@nivo/line'
 
 // Animated KPI card with value and delta.
-export const KpiCard = ({ title, value, delta, tone = 'up', index = 0, spark = null }) => {
+export const KpiCard = ({ title, value, delta, tone = 'up', index = 0, spark = null, isDarkMode }) => {
   const isUp = tone === 'up'
   return (
     <motion.div
@@ -14,9 +14,9 @@ export const KpiCard = ({ title, value, delta, tone = 'up', index = 0, spark = n
     >
       <Card className="bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/60 dark:border-white/10 shadow-[-10px_12px_28px_rgba(0,0,0,0.10)] ring-1 ring-white/40 dark:ring-white/5 hover:shadow-[12px_-10px_28px_rgba(0,0,0,0.14)] transition-shadow duration-300">
         <CardContent className="p-5">
-          <p className="text-sm text-gray-500">{title}</p>
+          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{title}</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{value}</span>
+            <span className={`text-2xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{value}</span>
             <span className={isUp ? 'text-xs font-medium text-teal-600' : 'text-xs font-medium text-red-600'}>{delta}</span>
           </div>
           {spark && (
@@ -33,7 +33,7 @@ export const KpiCard = ({ title, value, delta, tone = 'up', index = 0, spark = n
                 enableGridY={false}
                 useMesh
                 colors={isUp ? ['#0d9488'] : ['#dc2626']}
-                theme={{ textColor: '#6b7280' }}
+                theme={{ textColor: isDarkMode ? '#d1d5db' : '#6b7280' }}
               />
             </div>
           )}

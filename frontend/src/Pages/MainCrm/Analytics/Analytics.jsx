@@ -6,6 +6,7 @@ import { KpiCard } from './components/KpiCard'
 import { ChartCard } from './components/ChartCard'
 import { DataTable } from './components/DataTable'
 import { DetailsModal } from './components/DetailsModal'
+import { useDarkMode } from '../../../contexts/DarkModeContext'
 import {
   revenueTrend,
   salesByCategory,
@@ -42,6 +43,7 @@ const Analytics = () => {
   const [globalQuery, setGlobalQuery] = useState('')
   const [filters, setFilters] = useState({ datePreset: 'Last 30 Days', granularity: 'Daily', lifetime: false })
   const [refreshKey, setRefreshKey] = useState(0)
+  const { isDarkMode } = useDarkMode()
 
   // In a real app, use dateRange/region/category to fetch filtered data.
   const kpis = useMemo(
@@ -85,14 +87,15 @@ const Analytics = () => {
   const [group, setGroup] = useState('campaigns')
 
   return (
-    <div className="min-h-screen transition-colors relative">
+    <div className={`min-h-screen transition-colors relative ${isDarkMode ? 'dark' : ''}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white/70 backdrop-blur-md border border-gray-200 dark:bg-gray-900/40 dark:border-gray-700 shadow-md rounded-xl p-3">
+        <div className={`bg-white/70 backdrop-blur-md border ${isDarkMode ? 'bg-gray-900/40 border-gray-700' : 'border-gray-200'} shadow-md rounded-xl p-3`}>
           <AnalyticsHeader
             filters={filters}
             onChange={setFilters}
             onRefresh={() => setRefreshKey((v) => v + 1)}
             onExport={() => console.log('Export with filters', filters)}
+            isDarkMode={isDarkMode}
           />
         </div>
 
@@ -104,7 +107,13 @@ const Analytics = () => {
               onClick={() => setGroup(g)}
               className={[
                 'px-3 py-2 rounded-lg text-sm border transition-colors',
-                group === g ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                group === g 
+                  ? isDarkMode 
+                    ? 'bg-gray-700 text-white border-gray-600' 
+                    : 'bg-gray-900 text-white border-gray-900'
+                  : isDarkMode
+                    ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
               ].join(' ')}
             >
               {g.charAt(0).toUpperCase() + g.slice(1)}
@@ -122,62 +131,60 @@ const Analytics = () => {
             { title: 'Conversion', value: '3.1%', delta: '+0.3%', tone: 'up', spark: charts.kpiSparks.conversion },
             { title: 'Unsubscribe', value: '0.9%', delta: '+0.1%', tone: 'down', spark: charts.kpiSparks.unsubscribe },
           ].slice(0, 4).map((kpi, idx) => (
-            <KpiCard key={kpi.title} {...kpi} index={idx} />
+            <KpiCard key={kpi.title} {...kpi} index={idx} isDarkMode={isDarkMode} />
           ))}
         </motion.div>
 
         {/* Charts */}
         {group === 'campaigns' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Campaign Funnel" type="funnel" data={charts.campaignFunnel} height={360} />
-            <ChartCard title="Engagement Trend" type="line" data={charts.engagementTrendMulti} height={360} />
-            <ChartCard title="Campaign Comparison" type="bar" data={charts.campaignComparison} height={360} />
-            <ChartCard title="Channel Performance" type="pie" data={charts.channelPerformance} height={360} />
+            <ChartCard title="Campaign Funnel" type="funnel" data={charts.campaignFunnel} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Engagement Trend" type="line" data={charts.engagementTrendMulti} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Campaign Comparison" type="bar" data={charts.campaignComparison} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Channel Performance" type="pie" data={charts.channelPerformance} height={360} isDarkMode={isDarkMode} />
           </div>
         )}
         {group === 'segments' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Segment Performance" type="bar" data={charts.segmentPerformance} height={360} />
-            <ChartCard title="Segment Growth" type="area" data={charts.segmentGrowthTrend} height={360} />
-            <ChartCard title="Segment Engagement Heatmap" type="heatmap" data={charts.segmentEngagementHeatmap} height={360} className="lg:col-span-2" />
+            <ChartCard title="Segment Performance" type="bar" data={charts.segmentPerformance} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Segment Growth" type="area" data={charts.segmentGrowthTrend} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Segment Engagement Heatmap" type="heatmap" data={charts.segmentEngagementHeatmap} height={360} className="lg:col-span-2" isDarkMode={isDarkMode} />
           </div>
         )}
         {group === 'timing' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Engagement Heatmap" type="heatmap" data={charts.engagementHeatmap} height={360} />
-            <ChartCard title="Response Time Distribution" type="bar" data={charts.responseTimeHistogram} height={360} />
+            <ChartCard title="Engagement Heatmap" type="heatmap" data={charts.engagementHeatmap} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Response Time Distribution" type="bar" data={charts.responseTimeHistogram} height={360} isDarkMode={isDarkMode} />
           </div>
         )}
         {group === 'audience' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Geo Audience Heatmap" type="heatmap" data={charts.geoAudienceHeatmap} height={360} />
-            <ChartCard title="Demographics" type="pie" data={charts.demographicsBreakdown} height={360} />
+            <ChartCard title="Geo Audience Heatmap" type="heatmap" data={charts.geoAudienceHeatmap} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Demographics" type="pie" data={charts.demographicsBreakdown} height={360} isDarkMode={isDarkMode} />
           </div>
         )}
         {group === 'retention' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="Cohort Retention" type="line" data={charts.retentionCurve} height={360} />
-            <ChartCard title="Churn / Opt-out Trend" type="line" data={charts.churnTrend} height={360} />
+            <ChartCard title="Cohort Retention" type="line" data={charts.retentionCurve} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Churn / Opt-out Trend" type="line" data={charts.churnTrend} height={360} isDarkMode={isDarkMode} />
           </div>
         )}
         {group === 'advanced' && (
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ChartCard title="A/B Testing Results" type="bar" data={charts.campaignComparison} height={360} />
-            <ChartCard title="Predictive Conversion Forecast" type="line" data={charts.engagementTrendMulti} height={360} />
-            <ChartCard title="Campaign ROI (Bubble)" type="bubble" data={roiBubbleData()} height={360} />
+            <ChartCard title="A/B Testing Results" type="bar" data={charts.campaignComparison} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Predictive Conversion Forecast" type="line" data={charts.engagementTrendMulti} height={360} isDarkMode={isDarkMode} />
+            <ChartCard title="Campaign ROI (Bubble)" type="bubble" data={roiBubbleData()} height={360} isDarkMode={isDarkMode} />
           </div>
         )}
 
-        {/* Advanced Insights moved into respective groups to avoid duplication */}
-
         {/* Data Table */}
-        <Card className="mt-6 bg-white/40 dark:bg-white/5 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/60 dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+        <Card className={`mt-6 ${isDarkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border shadow-[0_8px_30px_rgba(0,0,0,0.08)]`}>
           <div className="px-5 pt-4">
             <input
               value={globalQuery}
               onChange={(e) => setGlobalQuery(e.target.value)}
               placeholder="Search customers, deals, or accounts..."
-              className="w-full md:w-96 h-10 px-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm bg-white/80"
+              className={`w-full md:w-96 h-10 px-3 rounded-lg border ${isDarkMode ? 'border-gray-600 bg-gray-700 text-gray-200' : 'border-gray-200 bg-white/80 text-gray-900'} focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm`}
             />
           </div>
           {group === 'campaigns' && (
@@ -194,6 +201,7 @@ const Analytics = () => {
                 { key: 'ctr', header: 'CTR %', format: (v) => `${v}%` },
                 { key: 'conversions', header: 'Conversions' },
               ]}
+              isDarkMode={isDarkMode}
             />
           )}
           {group === 'segments' && (
@@ -207,12 +215,14 @@ const Analytics = () => {
                 { key: 'ctr', header: 'CTR %', format: (v) => `${v}%` },
                 { key: 'conversionRate', header: 'Conv %', format: (v) => `${v}%` },
               ]}
+              isDarkMode={isDarkMode}
             />
           )}
           {group !== 'campaigns' && group !== 'segments' && (
             <DataTable
               rows={charts.tableRows}
               onRowClick={(row) => setSelectedRow(row)}
+              isDarkMode={isDarkMode}
             />
           )}
         </Card>
@@ -220,6 +230,7 @@ const Analytics = () => {
         <DetailsModal
           row={selectedRow}
           onClose={() => setSelectedRow(null)}
+          isDarkMode={isDarkMode}
         />
       </div>
     </div>

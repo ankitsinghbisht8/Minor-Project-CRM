@@ -1,6 +1,100 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { register } from '../../redux/slices/authslice'
+import { useNavigate } from 'react-router-dom'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  CircularProgress
+} from '@mui/material'
+import { CheckCircle, Error } from '@mui/icons-material'
 
 const RegisterForm = ({ onToggleToLogin }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  })
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogType, setDialogType] = useState('success') // 'success' or 'error'
+  const [dialogMessage, setDialogMessage] = useState('')
+  const dispatch = useDispatch()
+  const { loading: reduxLoading, error: reduxError } = useSelector(state => state.auth)
+  const navigate = useNavigate()
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setDialogType('error')
+      setDialogMessage('Passwords do not match')
+      setDialogOpen(true)
+      return
+    }
+
+    if (formData.password.length < 8) {
+      setDialogType('error')
+      setDialogMessage('Password must be at least 8 characters long')
+      setDialogOpen(true)
+      return
+    }
+
+    try {
+      const result = await dispatch(register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      })).unwrap()
+
+      // Show success dialog
+      setDialogType('success')
+      setDialogMessage('Account created successfully! Please go to the login page to sign in.')
+      setDialogOpen(true)
+      // Clear form
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      })
+    } catch (err) {
+      console.error('Registration error:', err)
+      setDialogType('error')
+      setDialogMessage(err.message || 'Registration failed')
+      setDialogOpen(true)
+    }
+  }
+
+  const handleGoogleAuth = () => {
+    // Redirect to backend Google OAuth route
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'
+    window.location.href = `${backendUrl}/auth/google`
+  }
+
+  const handleDialogClose = () => {
+    setDialogOpen(false)
+    if (dialogType === 'success') {
+      // Switch to login form after successful registration
+      onToggleToLogin()
+    }
+  }
+
   return (
     <div className="bg-white shadow-xl rounded-2xl p-8">
       <div className="text-center mb-6">
@@ -12,7 +106,7 @@ const RegisterForm = ({ onToggleToLogin }) => {
         <button
           type="button"
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          onClick={() => console.log('Google SSO clicked')}
+          onClick={handleGoogleAuth}
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
             <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.826 31.91 29.274 35 24 35 16.82 35 11 29.18 11 22S16.82 9 24 9c3.59 0 6.84 1.36 9.35 3.58l5.65-5.65C35.9 3.04 30.27 1 24 1 10.745 1 0 11.745 0 25s10.745 24 24 24 24-10.745 24-24c0-1.627-.165-3.215-.389-4.917z"/>
@@ -44,7 +138,7 @@ const RegisterForm = ({ onToggleToLogin }) => {
         </div>
       </div>
 
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); console.log('Register submit') }}>
+      <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="grid gap-1.5">
           <label htmlFor="name" className="text-sm font-medium text-gray-700">Full name</label>
           <input
@@ -53,6 +147,8 @@ const RegisterForm = ({ onToggleToLogin }) => {
             type="text"
             autoComplete="name"
             required
+            value={formData.name}
+            onChange={handleInputChange}
             placeholder="Alex Johnson"
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -66,6 +162,8 @@ const RegisterForm = ({ onToggleToLogin }) => {
             type="email"
             autoComplete="email"
             required
+            value={formData.email}
+            onChange={handleInputChange}
             placeholder="name@company.com"
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -79,6 +177,8 @@ const RegisterForm = ({ onToggleToLogin }) => {
             type="password"
             autoComplete="new-password"
             required
+            value={formData.password}
+            onChange={handleInputChange}
             placeholder="Create a strong password"
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -92,6 +192,8 @@ const RegisterForm = ({ onToggleToLogin }) => {
             type="password"
             autoComplete="new-password"
             required
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
             placeholder="Re-enter your password"
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -106,9 +208,20 @@ const RegisterForm = ({ onToggleToLogin }) => {
 
         <button
           type="submit"
-          className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          disabled={reduxLoading}
+          className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Create account
+          {reduxLoading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating account...
+            </>
+          ) : (
+            'Create account'
+          )}
         </button>
       </form>
 
@@ -116,6 +229,64 @@ const RegisterForm = ({ onToggleToLogin }) => {
         Already have an account?{' '}
         <button type="button" onClick={onToggleToLogin} className="font-medium text-blue-600 hover:underline">Sign in</button>
       </p>
+
+      {/* MUI Dialog for Success/Error Messages */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleDialogClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+            {dialogType === 'success' ? (
+              <CheckCircle sx={{ fontSize: 48, color: 'success.main' }} />
+            ) : (
+              <Error sx={{ fontSize: 48, color: 'error.main' }} />
+            )}
+          </Box>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            {dialogType === 'success' ? 'Registration Successful!' : 'Registration Failed'}
+          </Typography>
+        </DialogTitle>
+        
+        <DialogContent sx={{ textAlign: 'center', py: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            {dialogMessage}
+          </Typography>
+          
+          {dialogType === 'success' && (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="success" sx={{ borderRadius: 2 }}>
+                You can now sign in with your credentials.
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ justifyContent: 'center', pb: 3, px: 3 }}>
+          <Button
+            onClick={handleDialogClose}
+            variant={dialogType === 'success' ? 'contained' : 'outlined'}
+            color={dialogType === 'success' ? 'primary' : 'error'}
+            sx={{
+              minWidth: 120,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1
+            }}
+          >
+            {dialogType === 'success' ? 'Go to Login' : 'Try Again'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   )
 }

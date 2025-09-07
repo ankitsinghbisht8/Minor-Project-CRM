@@ -3,7 +3,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Popover from '@radix-ui/react-popover'
 import { Button } from '../../../../components/ui/button'
 
-export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
+export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport, isDarkMode }) => {
   const presets = ['Today','Yesterday','Last 7 Days','Last 30 Days','Custom']
   const granularities = ['Hourly','Daily','Weekly','Monthly']
   const [campaignQuery, setCampaignQuery] = React.useState('')
@@ -38,20 +38,26 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         <div className="flex items-center gap-2">
           {presets.map(p => (
             <button key={p} onClick={() => setField('datePreset', p)} className={[
-              'h-9 px-3 rounded-lg text-sm border',
-              filters.datePreset === p ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+              'h-9 px-3 rounded-lg text-sm border transition-colors',
+              filters.datePreset === p 
+                ? isDarkMode 
+                  ? 'bg-gray-700 text-white border-gray-600' 
+                  : 'bg-gray-900 text-white border-gray-900'
+                : isDarkMode
+                  ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
             ].join(' ')}>{p}</button>
           ))}
         </div>
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Granularity: {filters.granularity || 'Daily'}</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Granularity: {filters.granularity || 'Daily'}</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-1 shadow-xl dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-1 shadow-xl`} sideOffset={8}>
               {granularities.map(g => (
-                <DropdownMenu.Item key={g} className="px-3 py-2 rounded-md text-sm hover:bg-gray-50 cursor-pointer" onClick={() => setField('granularity', g)}>
+                <DropdownMenu.Item key={g} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'} cursor-pointer`} onClick={() => setField('granularity', g)}>
                   {g}
                 </DropdownMenu.Item>
               ))}
@@ -60,13 +66,17 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
 
         <button onClick={() => setField('lifetime', !filters.lifetime)} className={[
-          'h-9 px-3 rounded-lg text-sm border',
-          filters.lifetime ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+          'h-9 px-3 rounded-lg text-sm border transition-colors',
+          filters.lifetime 
+            ? 'bg-teal-600 text-white border-teal-600 hover:bg-teal-700' 
+            : isDarkMode
+              ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700'
+              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
         ].join(' ')}>{filters.lifetime ? 'Campaign Lifetime' : 'Specific Period'}</button>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button onClick={onRefresh}>Refresh</Button>
-          <Button variant="secondary" onClick={onExport}>Export</Button>
+          <Button onClick={onRefresh} className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Refresh</Button>
+          <Button variant="secondary" onClick={onExport} className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Export</Button>
         </div>
       </div>
 
@@ -75,21 +85,21 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         {/* Campaign */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Campaigns</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Campaigns</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-64 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
-              <div className="sticky top-0 bg-white dark:bg-gray-900 pb-2">
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-64`} sideOffset={8}>
+              <div className={`sticky top-0 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} pb-2`}>
                 <input
                   value={campaignQuery}
                   onChange={(e) => setCampaignQuery(e.target.value)}
                   placeholder="Search campaigns..."
-                  className="w-full h-9 px-3 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
+                  className={`w-full h-9 px-3 rounded-md border ${isDarkMode ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-200 bg-white text-gray-900'} focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm`}
                 />
               </div>
               <div className="max-h-40 overflow-auto pr-1">
                 {filteredCampaigns.map(c => (
-                  <DropdownMenu.CheckboxItem key={c} checked={(filters.campaigns||[]).includes(c)} onCheckedChange={() => toggleArray('campaigns', c)} className="px-3 py-2 rounded-md text-sm">
+                  <DropdownMenu.CheckboxItem key={c} checked={(filters.campaigns||[]).includes(c)} onCheckedChange={() => toggleArray('campaigns', c)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                     {c}
                   </DropdownMenu.CheckboxItem>
                 ))}
@@ -99,12 +109,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Type</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Type</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['Email','SMS','WhatsApp','Push'].map(t => (
-                <DropdownMenu.CheckboxItem key={t} checked={(filters.campaignType||[]).includes(t)} onCheckedChange={() => toggleArray('campaignType', t)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={t} checked={(filters.campaignType||[]).includes(t)} onCheckedChange={() => toggleArray('campaignType', t)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {t}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -113,12 +123,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Status</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Status</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['Draft','Scheduled','Live','Completed'].map(s => (
-                <DropdownMenu.CheckboxItem key={s} checked={(filters.campaignStatus||[]).includes(s)} onCheckedChange={() => toggleArray('campaignStatus', s)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={s} checked={(filters.campaignStatus||[]).includes(s)} onCheckedChange={() => toggleArray('campaignStatus', s)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {s}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -129,21 +139,21 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         {/* Segments */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Segments</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Segments</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-64 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
-              <div className="sticky top-0 bg-white dark:bg-gray-900 pb-2">
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-64`} sideOffset={8}>
+              <div className={`sticky top-0 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} pb-2`}>
                 <input
                   value={segmentQuery}
                   onChange={(e) => setSegmentQuery(e.target.value)}
                   placeholder="Search segments..."
-                  className="w-full h-9 px-3 rounded-md border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
+                  className={`w-full h-9 px-3 rounded-md border ${isDarkMode ? 'border-gray-600 bg-gray-800 text-gray-200' : 'border-gray-200 bg-white text-gray-900'} focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm`}
                 />
               </div>
               <div className="max-h-40 overflow-auto pr-1">
                 {filteredSegments.map(sg => (
-                  <DropdownMenu.CheckboxItem key={sg} checked={(filters.segments||[]).includes(sg)} onCheckedChange={() => toggleArray('segments', sg)} className="px-3 py-2 rounded-md text-sm">
+                  <DropdownMenu.CheckboxItem key={sg} checked={(filters.segments||[]).includes(sg)} onCheckedChange={() => toggleArray('segments', sg)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                     {sg}
                   </DropdownMenu.CheckboxItem>
                 ))}
@@ -153,12 +163,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Region</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Region</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['NA','EU','APAC'].map(r => (
-                <DropdownMenu.CheckboxItem key={r} checked={(filters.region||[]).includes(r)} onCheckedChange={() => toggleArray('region', r)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={r} checked={(filters.region||[]).includes(r)} onCheckedChange={() => toggleArray('region', r)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {r}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -167,12 +177,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Device</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Device</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['Mobile','Desktop','Tablet'].map(d => (
-                <DropdownMenu.CheckboxItem key={d} checked={(filters.deviceType||[]).includes(d)} onCheckedChange={() => toggleArray('deviceType', d)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={d} checked={(filters.deviceType||[]).includes(d)} onCheckedChange={() => toggleArray('deviceType', d)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {d}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -183,12 +193,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         {/* Performance */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Delivery Status</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Delivery Status</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['Delivered','Bounced','Failed'].map(s => (
-                <DropdownMenu.CheckboxItem key={s} checked={(filters.deliveryStatus||[]).includes(s)} onCheckedChange={() => toggleArray('deliveryStatus', s)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={s} checked={(filters.deliveryStatus||[]).includes(s)} onCheckedChange={() => toggleArray('deliveryStatus', s)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {s}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -197,12 +207,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Engagement</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Engagement</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['High','Medium','Low'].map(s => (
-                <DropdownMenu.CheckboxItem key={s} checked={(filters.engagementLevel||[]).includes(s)} onCheckedChange={() => toggleArray('engagementLevel', s)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={s} checked={(filters.engagementLevel||[]).includes(s)} onCheckedChange={() => toggleArray('engagementLevel', s)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {s}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -211,12 +221,12 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
         </DropdownMenu.Root>
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <Button variant="secondary">Conversion</Button>
+            <Button variant="secondary" className={isDarkMode ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700' : ''}>Conversion</Button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
-            <DropdownMenu.Content className="z-[200] rounded-lg border border-gray-200 bg-white p-2 shadow-xl w-56 dark:bg-gray-900 dark:border-gray-700" sideOffset={8}>
+            <DropdownMenu.Content className={`z-[200] rounded-lg border ${isDarkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'} p-2 shadow-xl w-56`} sideOffset={8}>
               {['Converted','Not Converted'].map(s => (
-                <DropdownMenu.CheckboxItem key={s} checked={(filters.conversionStatus||[]).includes(s)} onCheckedChange={() => toggleArray('conversionStatus', s)} className="px-3 py-2 rounded-md text-sm">
+                <DropdownMenu.CheckboxItem key={s} checked={(filters.conversionStatus||[]).includes(s)} onCheckedChange={() => toggleArray('conversionStatus', s)} className={`px-3 py-2 rounded-md text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-50'}`}>
                   {s}
                 </DropdownMenu.CheckboxItem>
               ))}
@@ -229,16 +239,14 @@ export const AnalyticsHeader = ({ filters, onChange, onRefresh, onExport }) => {
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {chips.map((c, i) => (
-            <span key={i} className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border border-gray-200 bg-white/80">
+            <span key={i} className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs border ${isDarkMode ? 'border-gray-600 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white/80 text-gray-700'}`}>
               {c.key}: {c.value}
-              <button className="text-gray-500 hover:text-gray-700" onClick={() => removeChip(c)}>×</button>
+              <button className={`${isDarkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => removeChip(c)}>×</button>
             </span>
           ))}
-          <button className="text-xs px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50" onClick={() => onChange({})}>Clear all</button>
+          <button className={`text-xs px-3 py-1 rounded-lg border ${isDarkMode ? 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-50'}`} onClick={() => onChange({})}>Clear all</button>
         </div>
       )}
     </div>
   )
 }
-
-

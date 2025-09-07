@@ -17,7 +17,6 @@ const Register = () => {
 
   const onClickSignIn=()=>{
     setIsLogin(true);
-    navigate('/dashboard')
   }
 
   useEffect(() => {

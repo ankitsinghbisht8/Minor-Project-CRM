@@ -12,14 +12,24 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../../../components
 // Shared color palette to keep legends and charts in sync (Nivo Set2)
 const SET2_COLORS = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854','#ffd92f','#e5c494','#b3b3b3']
 
-const ChartBody = ({ type, data, height, onElementClick }) => {
+const ChartBody = ({ type, data, height, onElementClick, isDarkMode }) => {
   const commonTheme = {
-    textColor: '#6b7280',
+    textColor: isDarkMode ? '#d1d5db' : '#6b7280',
     grid: {
-      line: { stroke: '#e5e7eb', strokeWidth: 1 },
+      line: { stroke: isDarkMode ? '#374151' : '#e5e7eb', strokeWidth: 1 },
     },
-    tooltip: { container: { background: 'white', color: '#111827', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 6px 20px rgba(0,0,0,0.08)', padding: 8 } },
-    crosshair: { line: { stroke: '#9ca3af', strokeWidth: 1, strokeOpacity: 0.6 } },
+    tooltip: { 
+      container: { 
+        background: isDarkMode ? '#374151' : 'white', 
+        color: isDarkMode ? '#f9fafb' : '#111827', 
+        fontSize: 12, 
+        border: isDarkMode ? '1px solid #4b5563' : '1px solid #e5e7eb', 
+        borderRadius: 8, 
+        boxShadow: '0 6px 20px rgba(0,0,0,0.08)', 
+        padding: 8 
+      } 
+    },
+    crosshair: { line: { stroke: isDarkMode ? '#6b7280' : '#9ca3af', strokeWidth: 1, strokeOpacity: 0.6 } },
   }
 
   if (type === 'line') {
@@ -233,7 +243,7 @@ const ChartBody = ({ type, data, height, onElementClick }) => {
   return null
 }
 
-export const ChartCard = ({ title, subtitle, type, data, height = 300, className, onElementClick, visualMode = '2d' }) => {
+export const ChartCard = ({ title, subtitle, type, data, height = 300, className, onElementClick, visualMode = '2d', isDarkMode }) => {
   const [localMode] = useState(visualMode)
   const [isHidden, setIsHidden] = useState(false)
 
@@ -243,8 +253,8 @@ export const ChartCard = ({ title, subtitle, type, data, height = 300, className
         <CardHeader className="border-b border-white/60 dark:border-white/10">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle>{title}</CardTitle>
-              {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
+              <CardTitle className={isDarkMode ? 'text-white' : 'text-gray-900'}>{title}</CardTitle>
+              {subtitle && <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{subtitle}</p>}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -254,7 +264,9 @@ export const ChartCard = ({ title, subtitle, type, data, height = 300, className
                   'px-2 py-1 rounded-lg text-xs border transition-all duration-200',
                   isHidden
                     ? 'bg-gradient-to-r from-orange-300 via-pink-400 to-purple-500 text-white border-transparent hover:shadow-lg hover:-translate-y-0.5'
-                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                    : isDarkMode
+                      ? 'bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:border-gray-500'
+                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                 ].join(' ')}
                 title={isHidden ? 'Show chart' : 'Hide chart'}
               >
@@ -265,13 +277,13 @@ export const ChartCard = ({ title, subtitle, type, data, height = 300, className
         </CardHeader>
         <CardContent>
           {isHidden ? (
-            <div className="py-10 text-center text-xs text-gray-500">Chart hidden</div>
+            <div className={`py-10 text-center text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Chart hidden</div>
           ) : (
             <>
               {type === 'line' && Array.isArray(data) && data.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-3 items-center">
                   {data.map((serie, i) => (
-                    <div key={serie.id || i} className="flex items-center gap-2 text-xs text-gray-600">
+                    <div key={serie.id || i} className={`flex items-center gap-2 text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <span
                         className="inline-block w-3 h-3 rounded-full"
                         style={{ backgroundColor: `var(--nivo-color-${i})` }}
@@ -286,7 +298,7 @@ export const ChartCard = ({ title, subtitle, type, data, height = 300, className
                 className={localMode === '3d' ? 'shadow-xl ring-1 ring-black/5 rounded-lg' : ''}
                 style={localMode === '3d' ? { transform: 'perspective(1000px) rotateX(6deg)', transformOrigin: 'center top' } : undefined}
               >
-                <ChartBody type={type} data={data} height={height} onElementClick={onElementClick} />
+                <ChartBody type={type} data={data} height={height} onElementClick={onElementClick} isDarkMode={isDarkMode} />
               </div>
             </>
           )}
