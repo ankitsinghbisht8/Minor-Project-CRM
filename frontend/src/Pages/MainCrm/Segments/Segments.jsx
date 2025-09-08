@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search, Users, Calendar, Target } from "lucide-react";
+import { Plus, Filter, Search, Users, Calendar, Target, Grid3X3, List } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import SegmentTable from "../../../components/SegmentTable/SegmentTable.jsx";
-import CreateSegmentModal from "../../../components/CreateSegmentModal/CreateSegmentModal.jsx";
+import SegmentCard from "../../../components/SegmentCard/SegmentCard.jsx";
 import { useDarkMode } from "../../../contexts/DarkModeContext";
 import "./Segments.css";
 
 const Segments = () => {
+  const navigate = useNavigate();
   const [segments, setSegments] = useState([]);
   const [filteredSegments, setFilteredSegments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [filterBy, setFilterBy] = useState("all");
+  const [viewMode, setViewMode] = useState("list");
   const { isDarkMode } = useDarkMode();
 
   // Load computed segments from backend and group by label
@@ -20,32 +22,32 @@ const Segments = () => {
     const fetchSegments = async () => {
       try {
         setLoading(true);
-        const base = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+        const base = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
         const res = await axios.get(`${base}/api/dashboard/segments`, { withCredentials: true });
         const rows = Array.isArray(res.data) ? res.data : [];
 
         const grouped = rows.reduce((acc, r) => {
-          const key = r.segment || 'Regular';
+          const key = r.segment || "Regular";
           if (!acc[key]) acc[key] = [];
           acc[key].push(r);
           return acc;
         }, {});
 
         const rulesText = {
-          'VIP': "total_spend > 20000 AND num_orders > 10 AND days_since_last_order < 30",
-          'Loyal': "total_spend > 10000 AND num_orders > 5",
-          'Churn Risk': "days_since_last_order > 180",
-          'Regular': "everyone else"
+          VIP: "total_spend > 20000 AND num_orders > 10 AND days_since_last_order < 30",
+          Loyal: "total_spend > 10000 AND num_orders > 5",
+          "Churn Risk": "days_since_last_order > 180",
+          Regular: "everyone else",
         };
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
         const built = Object.entries(grouped).map(([name, list], idx) => ({
           id: idx + 1,
           name,
-          rules: rulesText[name] || '—',
+          rules: rulesText[name] || "—",
           audienceSize: list.length,
           created: today,
-          status: 'active'
+          status: "active",
         }));
 
         setSegments(built);
@@ -94,15 +96,9 @@ const Segments = () => {
     setFilteredSegments(filtered);
   }, [segments, searchTerm, filterBy]);
 
-  const handleCreateSegment = (newSegment) => {
-    const segment = {
-      id: segments.length + 1,
-      ...newSegment,
-      created: new Date().toISOString().split("T")[0],
-      status: "active",
-    };
-    setSegments((prev) => [segment, ...prev]);
-    setShowCreateModal(false);
+  const handleCreateSegment = () => {
+    // Navigate to segment builder page instead of opening modal
+    navigate("builder");
   };
 
   const handleStartCampaign = (segmentId) => {
@@ -118,7 +114,8 @@ const Segments = () => {
 
   const handleEditSegment = (segmentId) => {
     console.log(`Editing segment ID: ${segmentId}`);
-    // Here you would open edit modal or navigate to edit page
+    // Here you would navigate to edit segment builder page with the segment data
+    navigate(`/segment-builder/${segmentId}`);
   };
 
   const getTotalAudience = () => {
@@ -126,16 +123,16 @@ const Segments = () => {
   };
 
   return (
-    <div className={`segments-page ${isDarkMode ? 'dark' : ''}`}>
+    <div className={`segments-page ${isDarkMode ? "dark" : ""}`}>
       {/* Header Section */}
       <div className="segments-header">
         <div className="header-left">
-          <h1 className={`page-title ${isDarkMode ? 'dark' : ''}`}>Segments</h1>
-          <p className={`page-subtitle ${isDarkMode ? 'dark' : ''}`}>
+          <h1 className={`page-title ${isDarkMode ? "dark" : ""}`}>Segments</h1>
+          <p className={`page-subtitle ${isDarkMode ? "dark" : ""}`}>
             Create and manage customer segments to target your campaigns effectively
           </p>
         </div>
-        <button className="create-segment-btn" onClick={() => setShowCreateModal(true)}>
+        <button className="create-segment-btn" onClick={handleCreateSegment}>
           <Plus size={20} />
           Create Segment
         </button>
@@ -143,53 +140,55 @@ const Segments = () => {
 
       {/* Stats Cards */}
       <div className="stats-cards">
-        <div className={`stat-card ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`stat-card ${isDarkMode ? "dark" : ""}`}>
           <div className="stat-icon">
             <Users size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? 'dark' : ''}>{filteredSegments.length}</h3>
-            <p className={isDarkMode ? 'dark' : ''}>Total Segments</p>
+            <h3 className={isDarkMode ? "dark" : ""}>{filteredSegments.length}</h3>
+            <p className={isDarkMode ? "dark" : ""}>Total Segments</p>
           </div>
         </div>
-        <div className={`stat-card ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`stat-card ${isDarkMode ? "dark" : ""}`}>
           <div className="stat-icon">
             <Target size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? 'dark' : ''}>{getTotalAudience().toLocaleString()}</h3>
-            <p className={isDarkMode ? 'dark' : ''}>Total Audience</p>
+            <h3 className={isDarkMode ? "dark" : ""}>{getTotalAudience().toLocaleString()}</h3>
+            <p className={isDarkMode ? "dark" : ""}>Total Audience</p>
           </div>
         </div>
-        <div className={`stat-card ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`stat-card ${isDarkMode ? "dark" : ""}`}>
           <div className="stat-icon">
             <Calendar size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? 'dark' : ''}>{segments.filter((s) => new Date(s.created) > new Date("2025-06-01")).length}</h3>
-            <p className={isDarkMode ? 'dark' : ''}>Recent Segments</p>
+            <h3 className={isDarkMode ? "dark" : ""}>
+              {segments.filter((s) => new Date(s.created) > new Date("2025-06-01")).length}
+            </h3>
+            <p className={isDarkMode ? "dark" : ""}>Recent Segments</p>
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
       <div className="segments-controls">
-        <div className={`search-container ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`search-container ${isDarkMode ? "dark" : ""}`}>
           <Search size={20} />
           <input
             type="text"
             placeholder="Search segments..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`search-input ${isDarkMode ? 'dark' : ''}`}
+            className={`search-input ${isDarkMode ? "dark" : ""}`}
           />
         </div>
-        <div className={`filter-container ${isDarkMode ? 'dark' : ''}`}>
+        <div className={`filter-container ${isDarkMode ? "dark" : ""}`}>
           <Filter size={20} />
           <select
             value={filterBy}
             onChange={(e) => setFilterBy(e.target.value)}
-            className={`filter-select ${isDarkMode ? 'dark' : ''}`}
+            className={`filter-select ${isDarkMode ? "dark" : ""}`}
           >
             <option value="all">All Segments</option>
             <option value="high-value">High Value (50+ users)</option>
@@ -197,26 +196,50 @@ const Segments = () => {
             <option value="active">Active</option>
           </select>
         </div>
+
+        {/* View Mode Toggle */}
+        <div className={`view-toggle ${isDarkMode ? "dark" : ""}`}>
+          <button
+            className={`view-btn ${viewMode === "list" ? "active" : ""} ${
+              isDarkMode ? "dark" : ""
+            }`}
+            onClick={() => setViewMode("list")}
+            title="List View"
+          >
+            <List size={18} />
+          </button>
+          <button
+            className={`view-btn ${viewMode === "cards" ? "active" : ""} ${
+              isDarkMode ? "dark" : ""
+            }`}
+            onClick={() => setViewMode("cards")}
+            title="Card View"
+          >
+            <Grid3X3 size={18} />
+          </button>
+        </div>
       </div>
 
-      {/* Segments Table */}
+      {/* Segments Content */}
       <div className="segments-content">
         {loading ? (
-          <div className={`loading-container ${isDarkMode ? 'dark' : ''}`}>
+          <div className={`loading-container ${isDarkMode ? "dark" : ""}`}>
             <div className="loading-spinner"></div>
-            <p className={isDarkMode ? 'dark' : ''}>Loading segments...</p>
+            <p className={isDarkMode ? "dark" : ""}>Loading segments...</p>
           </div>
         ) : filteredSegments.length === 0 ? (
-          <div className={`empty-state ${isDarkMode ? 'dark' : ''}`}>
+          <div className={`empty-state ${isDarkMode ? "dark" : ""}`}>
             <Users size={48} />
-            <h3 className={isDarkMode ? 'dark' : ''}>No segments found</h3>
-            <p className={isDarkMode ? 'dark' : ''}>Create your first segment to start targeting your audience</p>
-            <button className="create-segment-btn" onClick={() => setShowCreateModal(true)}>
+            <h3 className={isDarkMode ? "dark" : ""}>No segments found</h3>
+            <p className={isDarkMode ? "dark" : ""}>
+              Create your first segment to start targeting your audience
+            </p>
+            <button className="create-segment-btn" onClick={handleCreateSegment}>
               <Plus size={20} />
               Create Segment
             </button>
           </div>
-        ) : (
+        ) : viewMode === "list" ? (
           <SegmentTable
             segments={filteredSegments}
             onStartCampaign={handleStartCampaign}
@@ -224,16 +247,21 @@ const Segments = () => {
             onEditSegment={handleEditSegment}
             isDarkMode={isDarkMode}
           />
+        ) : (
+          <div className={`segments-grid ${isDarkMode ? "dark" : ""}`}>
+            {filteredSegments.map((segment) => (
+              <SegmentCard
+                key={segment.id}
+                segment={segment}
+                onStartCampaign={handleStartCampaign}
+                onDeleteSegment={handleDeleteSegment}
+                onEditSegment={handleEditSegment}
+                isDarkMode={isDarkMode}
+              />
+            ))}
+          </div>
         )}
       </div>
-
-      {/* Create Segment Modal */}
-      {showCreateModal && (
-        <CreateSegmentModal
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateSegment}
-        />
-      )}
     </div>
   );
 };
