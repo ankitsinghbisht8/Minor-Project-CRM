@@ -14,8 +14,8 @@ const Header = () => {
       transition={{ duration: 0.6 }}
       className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50"
     >
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <nav className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center p-4 h-16">
           {/* Logo */}
           <motion.div
             whileHover={{ scale: 1.05 }}
