@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
+import RecommendationsModal from "./RecommendationsModal";
 import { useNavigate } from "react-router-dom";
 import { useDarkMode } from "../../../contexts/DarkModeContext";
 import "./SegmentBuilder.css";
@@ -13,6 +15,10 @@ const SegmentBuilder = () => {
     rules: [{ field: "totalSpend", operator: "gte", value: "" }],
   });
   const [errors, setErrors] = useState({});
+  const [recLoading, setRecLoading] = useState(false);
+  const [recError, setRecError] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+  const [showRec, setShowRec] = useState(false);
 
   const fieldOptions = [
     { value: "totalSpend", label: "Total Spend" },
@@ -145,6 +151,31 @@ const SegmentBuilder = () => {
     navigate("/segments");
   };
 
+  const fetchRecommendations = async () => {
+    try {
+      setRecLoading(true);
+      setRecError(null);
+      setShowRec(true);
+      const base = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`;
+      const res = await axios.post(`${base}/api/rag/recommendations`, {}, { withCredentials: true });
+      setRecommendations(res.data?.suggestions || []);
+    } catch (e) {
+      setRecError(e.response?.data?.error || "Failed to load recommendations");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const applyRecommendation = (rec) => {
+    setFormData((prev) => ({
+      ...prev,
+      name: rec.name || prev.name,
+      description: rec.description || prev.description,
+      rules: (rec.rules || []).map((r) => ({ field: r.field, operator: r.operator, value: r.value }))
+    }));
+    setShowRec(false);
+  };
+
   return (
     <div className={`segment-builder-page ${isDarkMode ? "dark" : ""}`}>
       {/* Header Section */}
@@ -204,10 +235,15 @@ const SegmentBuilder = () => {
           <div className={`form-section ${isDarkMode ? "dark" : ""}`}>
             <div className="rules-header">
               <h2 className={`section-title ${isDarkMode ? "dark" : ""}`}>Segment Rules</h2>
-              <button type="button" className="add-rule-btn" onClick={addRule}>
-                <Plus size={16} />
-                Add Rule
-              </button>
+              <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
+                <button type="button" className="add-rule-btn" onClick={addRule}>
+                  <Plus size={16} />
+                  Add Rule
+                </button>
+                <button type="button" className="add-rule-btn" onClick={fetchRecommendations}>
+                  Recommendations
+                </button>
+              </div>
             </div>
 
             {formData.rules.map((rule, index) => (
@@ -446,6 +482,14 @@ const SegmentBuilder = () => {
           </div>
         </form>
       </div>
+      <RecommendationsModal
+        open={showRec}
+        loading={recLoading}
+        error={recError}
+        suggestions={recommendations}
+        onClose={() => setShowRec(false)}
+        onApply={applyRecommendation}
+      />
     </div>
   );
 };

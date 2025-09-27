@@ -43,6 +43,7 @@ router.get('/', async (req, res) => {
 
         const listSql = `SELECT customer_id, full_name, email, phone_number, age, gender, location, preferred_category,
             mode_of_communication, total_orders, total_amount, last_visited, last_contacted, customer_segment, subscribed,
+            rag_recommended_segment, rag_confidence, rag_rationale, last_segmented_at,
             created_at, updated_at
             FROM customers
             ${whereClause}

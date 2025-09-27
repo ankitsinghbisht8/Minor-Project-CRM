@@ -49,7 +49,7 @@ app.use(cors({
 // Auth routes
 app.use('/auth', googleAuthRoutes);
 app.use('/api/auth', jwtAuthRoutes);
-// app.use('/api/rag', ragRoutes);
+app.use('/api/rag', ragRoutes);
 app.use('/api/customers', customersRoutes);
 
 // Test route

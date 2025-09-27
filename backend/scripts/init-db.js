@@ -56,7 +56,12 @@ async function init() {
             embedding vector(1536),
             updated_at TIMESTAMP DEFAULT NOW()
         );`,
-        `CREATE INDEX IF NOT EXISTS idx_customer_profiles_vec_embedding ON customer_profiles_vec USING ivfflat (embedding vector_cosine_ops);`
+        `CREATE INDEX IF NOT EXISTS idx_customer_profiles_vec_embedding ON customer_profiles_vec USING ivfflat (embedding vector_cosine_ops);`,
+        // RAG recommendation fields on customers
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS rag_recommended_segment VARCHAR(50);`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS rag_confidence NUMERIC(4,3);`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS rag_rationale TEXT;`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_segmented_at TIMESTAMP;`
     ];
 
     try {
