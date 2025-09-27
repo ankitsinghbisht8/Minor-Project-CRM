@@ -15,6 +15,13 @@ const Users = () => {
     segment: "",
     subscribed: "",
   });
+  const [draftFilters, setDraftFilters] = useState({
+    search: "",
+    location: "",
+    minOrders: "",
+    segment: "",
+    subscribed: "",
+  });
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("DESC");
   const [selected, setSelected] = useState(null);
@@ -144,56 +151,88 @@ const Users = () => {
 
       {!loading && !error && (
         <div className="mt-4 overflow-x-auto">
-          <div className="mb-3 grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <input
               className="border rounded px-3 py-2 text-sm"
               placeholder="Search name or email"
-              value={filters.search}
+              value={draftFilters.search}
               onChange={(e) => {
-                setPage(1);
-                setFilters({ ...filters, search: e.target.value });
+                setDraftFilters({ ...draftFilters, search: e.target.value });
               }}
             />
             <input
               className="border rounded px-3 py-2 text-sm"
               placeholder="Location"
-              value={filters.location}
+              value={draftFilters.location}
               onChange={(e) => {
-                setPage(1);
-                setFilters({ ...filters, location: e.target.value });
+                setDraftFilters({ ...draftFilters, location: e.target.value });
               }}
             />
             <input
               className="border rounded px-3 py-2 text-sm"
               placeholder="Min orders"
               type="number"
-              value={filters.minOrders}
+              value={draftFilters.minOrders}
               onChange={(e) => {
-                setPage(1);
-                setFilters({ ...filters, minOrders: e.target.value });
+                setDraftFilters({ ...draftFilters, minOrders: e.target.value });
               }}
             />
             <input
               className="border rounded px-3 py-2 text-sm"
               placeholder="Segment"
-              value={filters.segment}
+              value={draftFilters.segment}
               onChange={(e) => {
-                setPage(1);
-                setFilters({ ...filters, segment: e.target.value });
+                setDraftFilters({ ...draftFilters, segment: e.target.value });
               }}
             />
             <select
               className="border rounded px-3 py-2 text-sm"
-              value={filters.subscribed}
+              value={draftFilters.subscribed}
               onChange={(e) => {
-                setPage(1);
-                setFilters({ ...filters, subscribed: e.target.value });
+                setDraftFilters({ ...draftFilters, subscribed: e.target.value });
               }}
             >
               <option value="">Subscribed?</option>
               <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
+            <button
+              className="border rounded px-3 py-2 text-sm bg-gray-900 text-white w-full"
+              onClick={() => {
+                setPage(1);
+                setFilters(draftFilters);
+              }}
+            >
+              Search
+            </button>
+          </div>
+
+          {/* Mobile cards (shown on small screens) */}
+          <div className="block md:hidden space-y-2">
+            {data.map((c) => (
+              <button
+                key={c.customer_id}
+                className="w-full text-left border rounded-lg p-3 bg-white shadow-sm active:shadow"
+                onClick={() => setSelected(c)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-900">{c.full_name}</div>
+                  <div className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-700">
+                    {c.customer_segment || "-"}
+                  </div>
+                </div>
+                <div className="mt-1 text-xs text-gray-600 break-all">{c.email}</div>
+                <div className="mt-1 flex items-center justify-between text-xs text-gray-600">
+                  <span>{c.location || "-"}</span>
+                  <span>
+                    {c.total_orders ?? 0} • ₹{Number(c.total_amount || 0).toFixed(2)}
+                  </span>
+                </div>
+              </button>
+            ))}
+            {!data.length && (
+              <div className="text-sm text-gray-500">No users found.</div>
+            )}
           </div>
 
           <div className="mb-3 flex items-center gap-2 text-sm">
@@ -217,6 +256,7 @@ const Users = () => {
               <option value="ASC">ASC</option>
             </select>
           </div>
+          <div className="hidden md:block">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
@@ -259,10 +299,11 @@ const Users = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
         <button
           className="px-3 py-1 rounded border text-sm"
           onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -281,8 +322,8 @@ const Users = () => {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">{selected.full_name}</h2>
