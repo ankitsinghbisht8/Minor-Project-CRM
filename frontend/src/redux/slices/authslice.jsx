@@ -2,6 +2,39 @@ import { createSlice } from '@reduxjs/toolkit'
 import { createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
 
+const AUTH_STORAGE_KEY = 'auth'
+
+const loadPersistedAuth = () => {
+    if (typeof window === 'undefined') return null
+    try {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+        return raw ? JSON.parse(raw) : null
+    } catch (e) {
+        return null
+    }
+}
+
+const persistAuth = (user, token) => {
+    if (typeof window === 'undefined') return
+    try {
+        localStorage.setItem(
+            AUTH_STORAGE_KEY,
+            JSON.stringify({ user, token })
+        )
+    } catch (e) {
+        // ignore storage errors
+    }
+}
+
+const clearPersistedAuth = () => {
+    if (typeof window === 'undefined') return
+    try {
+        localStorage.removeItem(AUTH_STORAGE_KEY)
+    } catch (e) {
+        // ignore storage errors
+    }
+}
+
 export const login = createAsyncThunk('auth/login', async (credentials, { rejectWithValue }) => {
     try {
         const response = await axios.post(
@@ -57,9 +90,11 @@ export const refreshToken = createAsyncThunk('auth/refreshToken', async (credent
 })
 
 
+const persisted = loadPersistedAuth()
+
 const initialState = {
-    user: null,
-    token: null,
+    user: persisted?.user ?? null,
+    token: persisted?.token ?? null,
     loading: false,
     error: null,
 }
@@ -70,9 +105,11 @@ const authSlice = createSlice({
     reducers: {
         setUser: (state, action) => {
             state.user = action.payload.user
+            persistAuth(state.user, state.token)
         },
         setToken: (state, action) => {
             state.token = action.payload.token
+            persistAuth(state.user, state.token)
         },
     },
     extraReducers: (builder) => {
@@ -84,6 +121,7 @@ const authSlice = createSlice({
             state.loading = false
             state.user = action.payload.user
             state.token = action.payload.token
+            persistAuth(state.user, state.token)
         })
         builder.addCase(login.rejected, (state, action) => {
             state.error = action.payload
@@ -97,6 +135,7 @@ const authSlice = createSlice({
             state.loading = false
             state.user = action.payload.user
             state.token = action.payload.token
+            persistAuth(state.user, state.token)
         })
         builder.addCase(register.rejected, (state, action) => {
             state.error = action.payload
@@ -110,6 +149,7 @@ const authSlice = createSlice({
             state.loading = false
             state.user = action.payload.user
             state.token = action.payload.token
+            persistAuth(state.user, state.token)
         })
         builder.addCase(googleLogin.rejected, (state, action) => {
             state.error = action.payload
@@ -123,6 +163,7 @@ const authSlice = createSlice({
             state.loading = false
             state.user = action.payload.user
             state.token = action.payload.token
+            persistAuth(state.user, state.token)
         })
         builder.addCase(refreshToken.rejected, (state, action) => {
             state.error = action.payload
@@ -136,6 +177,7 @@ const authSlice = createSlice({
             state.loading = false
             state.user = null
             state.token = null
+            clearPersistedAuth()
         })
         builder.addCase(logout.rejected, (state, action) => {
             state.error = action.payload

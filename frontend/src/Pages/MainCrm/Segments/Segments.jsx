@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Filter, Search, Users, Calendar, Target, Grid3X3, List } from "lucide-react";
+import { Plus, Filter, Search, Users, Calendar, Target, Grid3X3, List, CheckCircle, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import SegmentTable from "../../../components/SegmentTable/SegmentTable.jsx";
@@ -15,43 +15,34 @@ const Segments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState("all");
   const [viewMode, setViewMode] = useState("list");
+  const [toast, setToast] = useState(null);
   const { isDarkMode } = useDarkMode();
 
-  // Load computed segments from backend and group by label
+  // Load segments from backend
   useEffect(() => {
     const fetchSegments = async () => {
       try {
         setLoading(true);
         const base = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
-        const res = await axios.get(`${base}/api/dashboard/segments`, { withCredentials: true });
-        const rows = Array.isArray(res.data) ? res.data : [];
+        const res = await axios.get(`${base}/api/segments`, { withCredentials: true });
+        const segmentsData = Array.isArray(res.data) ? res.data : [];
 
-        const grouped = rows.reduce((acc, r) => {
-          const key = r.segment || "Regular";
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(r);
-          return acc;
-        }, {});
-
-        const rulesText = {
-          VIP: "total_spend > 20000 AND num_orders > 10 AND days_since_last_order < 30",
-          Loyal: "total_spend > 10000 AND num_orders > 5",
-          "Churn Risk": "days_since_last_order > 180",
-          Regular: "everyone else",
-        };
-
-        const today = new Date().toISOString().split("T")[0];
-        const built = Object.entries(grouped).map(([name, list], idx) => ({
-          id: idx + 1,
-          name,
-          rules: rulesText[name] || "—",
-          audienceSize: list.length,
-          created: today,
-          status: "active",
+        // Transform the segments data to match the expected format
+        const transformedSegments = segmentsData.map((segment) => ({
+          id: segment.id,
+          name: segment.name,
+          description: segment.description,
+          audienceSize: segment.audienceSize || 0,
+          created: segment.createdAt ? segment.createdAt.split('T')[0] : new Date().toISOString().split("T")[0],
+          status: segment.status || "active",
+          // Store additional data for future use
+          segmentRulesId: segment.segmentRulesId,
+          segmentMetaDataId: segment.segmentMetaDataId,
         }));
 
-        setSegments(built);
-        setFilteredSegments(built);
+        console.log("Fetched segments:", transformedSegments);
+        setSegments(transformedSegments);
+        setFilteredSegments(transformedSegments);
       } catch (error) {
         console.error("Error fetching segments:", error);
         setSegments([]);
@@ -73,7 +64,7 @@ const Segments = () => {
       filtered = filtered.filter(
         (segment) =>
           segment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          segment.rules.toLowerCase().includes(searchTerm.toLowerCase())
+          segment.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -107,16 +98,30 @@ const Segments = () => {
     // or open campaign modal
   };
 
-  const handleDeleteSegment = (segmentId) => {
-    console.log(`Deleting segment ID: ${segmentId}`);
-    setSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const handleEditSegment = (segmentId) => {
-    console.log(`Editing segment ID: ${segmentId}`);
-    // Here you would navigate to edit segment builder page with the segment data
-    navigate(`/segment-builder/${segmentId}`);
+  const handleDeleteSegment = async (segmentId) => {
+    try {
+      console.log(`Deleting segment ID: ${segmentId}`);
+      const base = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+      await axios.delete(`${base}/api/segments/${segmentId}`, { withCredentials: true });
+      
+      // Remove from local state
+      setSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
+      setFilteredSegments((prev) => prev.filter((segment) => segment.id !== segmentId));
+      
+      console.log("Segment deleted successfully");
+      showToast("Segment deleted successfully!", "success");
+    } catch (error) {
+      console.error("Error deleting segment:", error);
+      const errorMessage = error.response?.data?.error || error.message;
+      showToast(`Failed to delete segment: ${errorMessage}`, "error");
+    }
   };
+
 
   const getTotalAudience = () => {
     return filteredSegments.reduce((total, segment) => total + segment.audienceSize, 0);
@@ -145,8 +150,8 @@ const Segments = () => {
             <Users size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? "dark" : ""}>{filteredSegments.length}</h3>
-            <p className={isDarkMode ? "dark" : ""}>Total Segments</p>
+            <h3 style={{ color: 'black' }}>{filteredSegments.length}</h3>
+            <p style={{ color: 'black' }}>Total Segments</p>
           </div>
         </div>
         <div className={`stat-card ${isDarkMode ? "dark" : ""}`}>
@@ -154,8 +159,8 @@ const Segments = () => {
             <Target size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? "dark" : ""}>{getTotalAudience().toLocaleString()}</h3>
-            <p className={isDarkMode ? "dark" : ""}>Total Audience</p>
+            <h3 style={{ color: 'black' }}>{getTotalAudience().toLocaleString()}</h3>
+            <p style={{ color: 'black' }}>Total Audience</p>
           </div>
         </div>
         <div className={`stat-card ${isDarkMode ? "dark" : ""}`}>
@@ -163,10 +168,10 @@ const Segments = () => {
             <Calendar size={24} />
           </div>
           <div className="stat-content">
-            <h3 className={isDarkMode ? "dark" : ""}>
+            <h3 style={{ color: 'black' }}>
               {segments.filter((s) => new Date(s.created) > new Date("2025-06-01")).length}
             </h3>
-            <p className={isDarkMode ? "dark" : ""}>Recent Segments</p>
+            <p style={{ color: 'black' }}>Recent Segments</p>
           </div>
         </div>
       </div>
@@ -244,7 +249,6 @@ const Segments = () => {
             segments={filteredSegments}
             onStartCampaign={handleStartCampaign}
             onDeleteSegment={handleDeleteSegment}
-            onEditSegment={handleEditSegment}
             isDarkMode={isDarkMode}
           />
         ) : (
@@ -255,13 +259,26 @@ const Segments = () => {
                 segment={segment}
                 onStartCampaign={handleStartCampaign}
                 onDeleteSegment={handleDeleteSegment}
-                onEditSegment={handleEditSegment}
                 isDarkMode={isDarkMode}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast-notification ${toast.type} ${isDarkMode ? 'dark' : ''}`}>
+          <div className="toast-icon">
+            {toast.type === "success" ? (
+              <CheckCircle size={20} />
+            ) : (
+              <XCircle size={20} />
+            )}
+          </div>
+          <span className="toast-message">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 };

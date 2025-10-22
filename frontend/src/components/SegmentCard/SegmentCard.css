@@ -1,17 +1,34 @@
 /* Segment Card Styles */
 .segment-card {
   background: white;
-  border-radius: 1rem;
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
-  transition: all 0.3s ease;
-  /* height: fit-content; */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   height: 100%;
-  min-height: 400px;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.segment-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.segment-card:hover::before {
+  opacity: 1;
 }
 
 .segment-card.dark {
@@ -21,8 +38,8 @@
 }
 
 .segment-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .segment-card.dark:hover {
@@ -196,48 +213,69 @@
 
 /* Segment Stats */
 .segment-stats {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
 }
 
 .stat-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 8px;
+  gap: 0.5rem;
+  padding: 1rem 0.75rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stat-item.dark {
-  background: #1f2937;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
   border: 1px solid #374151;
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon.users-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon.calendar-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-icon.status-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
 .stat-info {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .stat-value {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: #1a202c;
   transition: color 0.3s ease;
+  line-height: 1.2;
 }
 
 .stat-value.dark {
@@ -245,11 +283,12 @@
 }
 
 .stat-label {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.05em;
   transition: color 0.3s ease;
+  font-weight: 600;
 }
 
 .stat-label.dark {
@@ -354,5 +393,269 @@
 
   .segment-card {
     padding: 1.25rem;
+  }
+
+  .segment-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card Delete Modal Styles */
+.card-delete-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.card-delete-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  max-width: 480px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+.card-delete-modal-header {
+  display: flex;
+  align-items: center;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+}
+
+.card-delete-modal-icon {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-radius: 12px;
+  padding: 12px;
+  margin-right: 16px;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-delete-modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  flex: 1;
+}
+
+.card-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-close-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.card-delete-modal-body {
+  padding: 24px;
+}
+
+.card-delete-modal-body p {
+  font-size: 1rem;
+  color: #374151;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.card-segment-info {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.card-segment-detail {
+  display: flex;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.card-segment-detail:last-child {
+  margin-bottom: 0;
+}
+
+.card-segment-detail strong {
+  color: #1f2937;
+  min-width: 120px;
+  margin-right: 12px;
+}
+
+.card-segment-detail span {
+  color: #6b7280;
+  flex: 1;
+}
+
+.card-warning-message {
+  display: flex;
+  align-items: flex-start;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px;
+  color: #92400e;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.card-warning-message svg {
+  margin-right: 8px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.card-delete-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  justify-content: flex-end;
+}
+
+.card-cancel-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.card-cancel-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.card-delete-confirm-btn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: none;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-delete-confirm-btn:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* Dark mode modal styles */
+.card-delete-modal-overlay.dark .card-delete-modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+.card-delete-modal-overlay.dark .card-delete-modal-header {
+  border-bottom-color: #334155;
+}
+
+.card-delete-modal-overlay.dark .card-delete-modal-icon {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  color: #fca5a5;
+}
+
+.card-delete-modal-overlay.dark .card-delete-modal-header h3 {
+  color: #f1f5f9;
+}
+
+.card-delete-modal-overlay.dark .card-close-btn {
+  color: #94a3b8;
+}
+
+.card-delete-modal-overlay.dark .card-close-btn:hover {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.card-delete-modal-overlay.dark .card-delete-modal-body p {
+  color: #cbd5e1;
+}
+
+.card-delete-modal-overlay.dark .card-segment-info {
+  background: #334155;
+  border-color: #475569;
+}
+
+.card-delete-modal-overlay.dark .card-segment-detail strong {
+  color: #f1f5f9;
+}
+
+.card-delete-modal-overlay.dark .card-segment-detail span {
+  color: #94a3b8;
+}
+
+.card-delete-modal-overlay.dark .card-warning-message {
+  background: #78350f;
+  border-color: #f59e0b;
+  color: #fcd34d;
+}
+
+.card-delete-modal-overlay.dark .card-cancel-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.card-delete-modal-overlay.dark .card-cancel-btn:hover {
+  background: #475569;
+  border-color: #64748b;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

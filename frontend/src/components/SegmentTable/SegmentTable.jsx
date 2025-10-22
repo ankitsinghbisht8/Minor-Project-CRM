@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { Play, Edit3, Trash2, MoreVertical, Users, Calendar } from "lucide-react";
+import { Play, Trash2, MoreVertical, Users, Calendar, X, AlertTriangle } from "lucide-react";
 import "./SegmentTable.css";
 
-const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegment }) => {
+const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, isDarkMode }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, segment: null });
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -30,17 +31,24 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegmen
       case "campaign":
         onStartCampaign(segmentId);
         break;
-      case "edit":
-        onEditSegment(segmentId);
-        break;
       case "delete":
-        if (window.confirm("Are you sure you want to delete this segment?")) {
-          onDeleteSegment(segmentId);
-        }
+        const segment = segments.find(s => s.id === segmentId);
+        setDeleteModal({ isOpen: true, segment });
         break;
       default:
         break;
     }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteModal.segment) {
+      onDeleteSegment(deleteModal.segment.id);
+      setDeleteModal({ isOpen: false, segment: null });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, segment: null });
   };
 
   return (
@@ -50,7 +58,7 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegmen
           <thead>
             <tr>
               <th>Segment Name</th>
-              <th>Rules</th>
+              <th>Description</th>
               <th>Audience Size</th>
               <th>Created</th>
               <th>Status</th>
@@ -72,8 +80,8 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegmen
                   </div>
                 </td>
                 <td className="rules-cell">
-                  <span className="rules-text" title={segment.rules}>
-                    {segment.rules}
+                  <span className="rules-text" title={segment.description}>
+                    {segment.description}
                   </span>
                 </td>
                 <td className="audience-size-cell">
@@ -113,18 +121,11 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegmen
                       {activeDropdown === segment.id && (
                         <div className="dropdown-menu">
                           <button
-                            className="dropdown-item"
-                            onClick={() => handleAction("edit", segment.id)}
-                          >
-                            <Edit3 size={14} />
-                            Edit Segment
-                          </button>
-                          <button
-                            className="dropdown-item delete"
+                            className="dropdown-item delete-btn"
                             onClick={() => handleAction("delete", segment.id)}
                           >
                             <Trash2 size={14} />
-                            Delete
+                            Delete Segment
                           </button>
                         </div>
                       )}
@@ -136,6 +137,62 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, onEditSegmen
           </tbody>
         </table>
       </div>
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className={`delete-modal-overlay ${isDarkMode ? 'dark' : ''}`}>
+          <div className="delete-modal">
+            <div className="delete-modal-header">
+              <div className="delete-modal-icon">
+                <AlertTriangle size={24} />
+              </div>
+              <h3>Delete Segment</h3>
+              <button 
+                className="close-btn" 
+                onClick={handleDeleteCancel}
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="delete-modal-body">
+              <p>Are you sure you want to delete this segment?</p>
+              <div className="segment-info">
+                <div className="segment-detail">
+                  <strong>Name:</strong> {deleteModal.segment?.name}
+                </div>
+                <div className="segment-detail">
+                  <strong>Description:</strong> {deleteModal.segment?.description}
+                </div>
+                <div className="segment-detail">
+                  <strong>Audience Size:</strong> {deleteModal.segment?.audienceSize?.toLocaleString()}
+                </div>
+              </div>
+              <div className="warning-message">
+                <AlertTriangle size={16} />
+                <span>This action cannot be undone. All associated data will be permanently deleted.</span>
+              </div>
+            </div>
+            
+            <div className="delete-modal-footer">
+              <button 
+                className="cancel-btn" 
+                onClick={handleDeleteCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="delete-confirm-btn" 
+                onClick={handleDeleteConfirm}
+              >
+                <Trash2 size={16} />
+                Delete Segment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

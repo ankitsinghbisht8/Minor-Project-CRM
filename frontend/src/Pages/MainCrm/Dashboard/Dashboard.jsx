@@ -29,13 +29,15 @@ const DashBoard = () => {
   const { loading: logoutLoading, error: logoutError, user } = useSelector(state => state.auth)
   const { isDarkMode, toggleDarkMode } = useDarkMode()
 
+  const [profileImgError, setProfileImgError] = useState(false)
+
   const navItems = useMemo(
     () => [
       { label: 'Dashboard', to: '/dashboard', Icon: DashboardIcon },
       { label: 'Analytics', to: '/dashboard/analytics', Icon: QueryStats },
       { label: 'Users', to: '/dashboard/users', Icon: Group },
       { label: 'Segments', to: '/dashboard/segments', Icon: ViewList },
-      { label: 'Segment Builder', to: '/dashboard/segments/builder', Icon: Tune },
+      { label: 'Segment Builder', to: '/dashboard/segmentBuilder', Icon: Tune },
       { label: 'Settings', to: '/dashboard/settings', Icon: Settings },
       { label: 'Notifications', to: '/dashboard/notifications', Icon: Notifications },
     ],
@@ -96,6 +98,14 @@ const DashBoard = () => {
     return 'U'
   }
 
+  const getProfileImageUrl = (path) => {
+    if (!path) return null
+    if (/^https?:\/\//i.test(path)) return path
+    const base = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '')
+    const cleanPath = String(path).replace(/^\//, '')
+    return `${base}/${cleanPath}`
+  }
+
   const SidebarContent = ({ collapsed }) => (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -139,11 +149,12 @@ const DashBoard = () => {
       {/* Profile */}
       <div className={`mt-auto border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} p-3`}>
         <div className="flex items-center gap-3 px-2">
-          {user?.profilePicture ? (
+          {user?.profilePicture && !profileImgError ? (
             <img
-              src={user.profilePicture}
+              src={getProfileImageUrl(user.profilePicture)}
               alt={getUserDisplayName()}
               className="w-9 h-9 rounded-full object-cover border border-white/20"
+              onError={() => setProfileImgError(true)}
             />
           ) : (
             <div className="w-9 h-9 rounded-full bg-gradient-to-r from-orange-300 via-pink-400 to-purple-500 text-white flex items-center justify-center font-semibold">

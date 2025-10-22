@@ -32,7 +32,7 @@ function App() {
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="users" element={<Users />} />
                 <Route path="segments" element={<Segments />} />
-                <Route path="segments/builder" element={<SegmentBuilder />} />
+                <Route path="segmentBuilder" element={<SegmentBuilder />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="notifications" element={<Notifications />} />
               </Route>
