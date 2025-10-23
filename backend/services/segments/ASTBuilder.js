@@ -17,31 +17,37 @@ const buildAST = (DSL) => {
   let sizeOfDSL = DSL.size;
   if (sizeOfDSL === 0) return {};
 
-  if (sizeOfDSL === 1) {
-    const rule = DSL.values().next().value;
+  // Extract global operator and rules
+  const globalOperator = DSL.get('operator') || 'AND';
+  
+  // Get all rule entries (keys starting with 'rule-')
+  const ruleEntries = [];
+  for (const [key, value] of DSL.entries()) {
+    if (key.startsWith('rule-') && typeof value === 'object' && value.field) {
+      ruleEntries.push(value);
+    }
+  }
+
+  // If no rules found, return empty
+  if (ruleEntries.length === 0) {
+    return {};
+  }
+
+  // If only one rule, return a simple comparison expression
+  if (ruleEntries.length === 1) {
+    const rule = ruleEntries[0];
     return boilerCodeForComparisonExpression(rule.operator, rule.field, rule.value);
   }
 
-  return recursiveASTBuilder(DSL);                  
+  // Multiple rules - build logical expression
+  const children = ruleEntries.map(rule => 
+    boilerCodeForComparisonExpression(rule.operator, rule.field, rule.value)
+  );
+
+  return boilerCodeForLogicalExpression(globalOperator, ...children);
 };
 
-// Recursive AST Builder
-const recursiveASTBuilder = (DSL) => {
-  let sizeOfDSL = DSL.size;
-  if (sizeOfDSL === 0) return {};
-
-  const rule1 = removeFirstEntry(DSL);
-  const operator = removeFirstEntry(DSL);
-  const rule2 = removeFirstEntry(DSL);
-
-  if (DSL.size === 0) {
-    return boilerCodeForLogicalExpression(operator, rule1, rule2);
-  } else {
-    return boilerCodeForLogicalExpression(operator, rule1, recursiveASTBuilder(DSL));
-  }
-};
-
-// Helper: remove first entry
+// Helper: remove first entry (kept for backward compatibility)
 function removeFirstEntry(map) {
     const iterator = map.keys().next();
     if (!iterator.done) {

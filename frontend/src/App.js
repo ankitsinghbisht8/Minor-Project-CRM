@@ -15,6 +15,7 @@ import Settings from "./Pages/MainCrm/Settings/Settings";
 import Notifications from "./Pages/MainCrm/Notifications/Notifications";
 import Segments from "./Pages/MainCrm/Segments/Segments";
 import SegmentBuilder from "./Pages/MainCrm/Segments/SegmentBuilder";
+import Campaign from "./Pages/MainCrm/Campaign/Campaign";
 
 function App() {
 
@@ -27,14 +28,20 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/auth/google/callback" element={<GoogleCallback />} />
+              {/* Keep dashboard overview at /dashboard */}
               <Route path="/dashboard" element={<Dashboard />}>
                 <Route index element={<Overview />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="users" element={<Users />} />
-                <Route path="segments" element={<Segments />} />
-                <Route path="segmentBuilder" element={<SegmentBuilder />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="notifications" element={<Notifications />} />
+              </Route>
+
+              {/* Render other sections at top-level paths using the same Dashboard layout */}
+              <Route element={<Dashboard />}>
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/segments" element={<Segments />} />
+                <Route path="/segments/builder" element={<SegmentBuilder />} />
+                <Route path="/campaigns" element={<Campaign />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/notifications" element={<Notifications />} />
               </Route>
             </Routes>
           </div>

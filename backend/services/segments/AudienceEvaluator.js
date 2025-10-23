@@ -33,37 +33,50 @@ const evaluateComparisonExpression = (node) => {
         return '1=1';
     }
 
-    // Map field names to aggregated column names
+      // Map frontend field names to aggregated SQL column names
+    // Frontend uses camelCase, SQL aggregation creates these column aliases
     const fieldMap = {
-        totalSpend: 'totalSpend',
-        totalOrders: 'totalOrders',
-        visits: 'visits',
-        lastPurchase: 'lastPurchase',
-        registrationDate: 'registrationDate',
-        age: 'age',
-        location: 'location'
+        // Aggregated fields (calculated in CTE)
+        totalSpend: 'totalSpend',      // SUM of completed order amounts
+        totalOrders: 'totalOrders',    // COUNT of completed orders
+        visits: 'visits',              // SUM of Visit interactions
+        lastPurchase: 'lastPurchase',  // MAX order_date of completed orders
+        
+        // Direct customer table fields
+        registrationDate: 'registrationDate',  // customers.created_at
+        age: 'age',                            // customers.age
+        location: 'location',                  // customers.location
+        email: 'email',                        // customers.email
+        full_name: 'full_name',                // customers.full_name
+        phone_number: 'phone_number',          // customers.phone_number
+        gender: 'gender'                       // customers.gender
     };
 
     const mappedField = fieldMap[field] || field;
 
     switch (operator) {
         case '>=':
+        case 'gte':
             return `${mappedField} >= ${sequelize.escape(value)}`;
         case '<=':
+        case 'lte':
             return `${mappedField} <= ${sequelize.escape(value)}`;
         case '>':
+        case 'gt':
             return `${mappedField} > ${sequelize.escape(value)}`;
         case '<':
+        case 'lt':
             return `${mappedField} < ${sequelize.escape(value)}`;
         case '==':
         case '=':
+        case 'eq':
             return `${mappedField} = ${sequelize.escape(value)}`;
         case '!=':
             return `${mappedField} != ${sequelize.escape(value)}`;
         case 'contains':
-            return `${mappedField} ILIKE ${sequelize.escape('%' + value + '%')}`;
+            return `${mappedField}::text ILIKE ${sequelize.escape('%' + value + '%')}`;
         case 'not_contains':
-            return `${mappedField} NOT ILIKE ${sequelize.escape('%' + value + '%')}`;
+            return `${mappedField}::text NOT ILIKE ${sequelize.escape('%' + value + '%')}`;
         default:
             console.warn(`Unknown operator: ${operator}`);
             return '1=1';
@@ -122,24 +135,49 @@ const calculateAudience = async (ast, options = {}) => {
         console.log('[AudienceEvaluator] WHERE clause:', whereClause);
 
         // Base query with customer aggregations
+        // Maps to actual database schema from init-db.js
         const baseQuery = `
             WITH agg AS (
                 SELECT
                     c.customer_id,
                     c.full_name,
                     c.email,
-                    c.phone,
+                    c.phone_number,
                     c.age,
+                    c.gender,
                     c.location,
-                    c.registration_date AS registrationDate,
+                    c.preferred_category,
+                    c.mode_of_communication,
+                    c.customer_segment,
+                    c.subscribed,
+                    c.created_at AS registrationDate,
+                    c.last_visited,
+                    c.last_contacted,
+                    -- Aggregated metrics from orders
                     COALESCE(SUM(CASE WHEN o.order_status = 'Completed' THEN o.order_amount ELSE 0 END), 0) AS totalSpend,
                     COUNT(CASE WHEN o.order_status = 'Completed' THEN 1 END) AS totalOrders,
-                    SUM(CASE WHEN i.interaction_type = 'Visit' THEN 1 ELSE 0 END) AS visits,
+                    -- Aggregated metrics from interactions
+                    COALESCE(SUM(CASE WHEN i.interaction_type = 'Visit' THEN 1 ELSE 0 END), 0) AS visits,
+                    -- Latest completed order date
                     MAX(CASE WHEN o.order_status = 'Completed' THEN o.order_date END) AS lastPurchase
                 FROM customers c
                 LEFT JOIN orders o ON c.customer_id = o.customer_id
                 LEFT JOIN interactions i ON c.customer_id = i.customer_id
-                GROUP BY c.customer_id, c.full_name, c.email, c.phone, c.age, c.location, c.registration_date
+                GROUP BY 
+                    c.customer_id, 
+                    c.full_name, 
+                    c.email, 
+                    c.phone_number, 
+                    c.age, 
+                    c.gender,
+                    c.location,
+                    c.preferred_category,
+                    c.mode_of_communication,
+                    c.customer_segment,
+                    c.subscribed,
+                    c.created_at,
+                    c.last_visited,
+                    c.last_contacted
             )
         `;
 

@@ -6,6 +6,7 @@ const { calculateAudience, validateAST } = require('../services/segments/Audienc
 const Segments = require('../Models/segments/Segments');
 const SegmentRules = require('../Models/segments/segmentRules');
 const SegmentMetaData = require('../Models/segments/segmentMetaData');
+const SegmentMembers = require('../Models/segments/segmentMembers');
 const Users = require('../Models/users');
 
 // Get all created segments
@@ -14,6 +15,7 @@ router.get('/segments', async (req, res) => {
         const segments = await Segments.findAll({
             order: [['createdAt', 'DESC']]
         });
+        console.log("Segments data:", segments);
         res.json(segments);
     } catch (err) {
         console.error('Failed to fetch segments:', err.message);
@@ -84,7 +86,7 @@ router.post('/segments/calculate-audience', async (req, res) => {
     }
 });
 
-// Get customers for a segment based on its rules
+// Get customers for a segment (re-evaluates rules in real-time)
 router.get('/segments/:id/customers', async (req, res) => {
     try {
         const { id } = req.params;
@@ -115,7 +117,7 @@ router.get('/segments/:id/customers', async (req, res) => {
             });
         }
 
-        // Get customers using AST evaluator
+        // Get customers using AST evaluator (real-time evaluation)
         const result = await calculateAudience(ast, { 
             returnCustomers: true,
             limit: parseInt(limit)
@@ -129,7 +131,8 @@ router.get('/segments/:id/customers', async (req, res) => {
             audienceSize: result.audienceSize,
             customers: result.customers,
             limit: parseInt(limit),
-            offset: parseInt(offset)
+            offset: parseInt(offset),
+            source: 'real-time-evaluation'
         });
     } catch (err) {
         console.error('Failed to get segment customers:', err.message);
@@ -141,12 +144,90 @@ router.get('/segments/:id/customers', async (req, res) => {
     }
 });
 
+// Get stored segment members (from segment_members table)
+router.get('/segments/:id/members', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { limit = 100, offset = 0 } = req.query;
+
+        // Find the segment
+        const segment = await Segments.findByPk(id);
+        if (!segment) {
+            return res.status(404).json({ error: 'Segment not found' });
+        }
+
+        // Get segment members from the database
+        const query = `
+            SELECT 
+                sm.id as membership_id,
+                sm.created_at as added_to_segment,
+                c.customer_id,
+                c.full_name,
+                c.email,
+                c.phone_number,
+                c.age,
+                c.location,
+                c.total_orders,
+                c.total_amount
+            FROM segment_members sm
+            JOIN customers c ON sm."customerId" = c.customer_id
+            WHERE sm."segmentId" = :segmentId
+            ORDER BY sm.created_at DESC
+            LIMIT :limit OFFSET :offset
+        `;
+
+        const countQuery = `
+            SELECT COUNT(*) as count
+            FROM segment_members
+            WHERE "segmentId" = :segmentId
+        `;
+
+        const [members] = await sequelize.query(query, {
+            replacements: { 
+                segmentId: id, 
+                limit: parseInt(limit), 
+                offset: parseInt(offset) 
+            }
+        });
+
+        const [countResult] = await sequelize.query(countQuery, {
+            replacements: { segmentId: id }
+        });
+
+        const totalMembers = parseInt(countResult[0]?.count || 0);
+
+        console.log('[Get Segment Members] Segment:', segment.name, 'Members:', totalMembers);
+
+        res.json({
+            segmentId: id,
+            segmentName: segment.name,
+            totalMembers,
+            members,
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            source: 'stored-snapshot'
+        });
+    } catch (err) {
+        console.error('Failed to get segment members:', err.message);
+        console.error('Full error:', err);
+        res.status(500).json({ 
+            error: 'Failed to get segment members', 
+            details: err.message 
+        });
+    }
+});
+
 
 //Create Segment
 router.post('/segments', async (req, res) => {
     try {
+        // Log the start time for progress tracking
+        const startTime = Date.now();
+        console.log('[Segment Creation] Started at', new Date().toISOString());
+        
         let userId = req.user?.id || null;
         console.log('User ID for segment creation:', userId);
+        
         // Resolve a fallback user in non-production if not authenticated
         if (!userId) {
             const defaultEmail = process.env.DEFAULT_USER_EMAIL;
@@ -170,7 +251,7 @@ router.post('/segments', async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        console.log('User ID for segment creation:', userId);
+        console.log('[Step 1/11] User authenticated:', userId);
 
         // MetaData for the segment
         const metaData = {
@@ -210,10 +291,10 @@ router.post('/segments', async (req, res) => {
             }
           };
 
-        // Build rules AST from frontend payload
+        // Step 2: Validate input
+        console.log('[Step 2/11] Validating segment data...');
         const { rules, rulesText, name, description, audienceSize } = req.body || {};
 
-        // Validate required fields
         if (!name || !name.trim()) {
             return res.status(400).json({ error: 'Segment name is required' });
         }
@@ -221,20 +302,23 @@ router.post('/segments', async (req, res) => {
             return res.status(400).json({ error: 'Segment description is required' });
         }
 
-        // Check if segment name already exists
         const existingSegment = await Segments.findOne({ where: { name: name.trim() } });
         if (existingSegment) {
             return res.status(400).json({ error: 'A segment with this name already exists' });
         }
 
-        // Frontend may send mixed list; backend ASTBuilder expects a Map-like sequence
+        // Step 3: Build AST
+        console.log('[Step 3/11] Building segment rules AST...');
+        
         let rulesAst = {};
         try {
             // Accept both DSL entries and mixed rules array
             if (Array.isArray(req.body?.dsl)) {
                 console.log('Processing DSL:', req.body.dsl);
                 
-                // Validate DSL structure - should be array of [key, value] pairs
+                // Validate DSL structure - shou
+                // 
+                // ld be array of [key, value] pairs
                 if (!req.body.dsl.every(pair => Array.isArray(pair) && pair.length === 2)) {
                     console.error('Invalid DSL structure:', req.body.dsl);
                     return res.status(400).json({ error: 'Invalid DSL structure. Expected array of [key, value] pairs.' });
@@ -279,42 +363,102 @@ router.post('/segments', async (req, res) => {
             return res.status(400).json({ error: 'Invalid rules payload' });
         }
 
-        console.log('Creating metadata with:', { metaData });
+        // Step 4: Validate AST
+        console.log('[Step 4/11] Validating segment rules...');
+        const astValidation = validateAST(rulesAst);
+        if (!astValidation.valid) {
+            console.error('AST validation failed:', astValidation.errors);
+            return res.status(400).json({ 
+                error: 'Invalid segment rules', 
+                details: astValidation.errors 
+            });
+        }
+
+        // Step 5: Calculate audience
+        console.log('[Step 5/11] Calculating audience size...');
+        let actualAudienceSize = 0;
+        let audienceCustomers = [];
+        
+        try {
+            const audienceResult = await calculateAudience(rulesAst, { 
+                returnCustomers: true
+            });
+            
+            actualAudienceSize = audienceResult.audienceSize;
+            audienceCustomers = audienceResult.customers || [];
+            
+            console.log('[Step 6/11] Found', actualAudienceSize, 'matching customers');
+        } catch (evalError) {
+            console.error('Audience evaluation failed:', evalError);
+            return res.status(400).json({ 
+                error: 'Failed to evaluate segment rules', 
+                details: evalError.message 
+            });
+        }
+
+        // Step 7: Create metadata
+        console.log('[Step 7/11] Saving segment metadata...');
         const metaDataRow = await SegmentMetaData.create({ metaData });
         if (!metaDataRow) {
             return res.status(500).json({ error: 'MetaData creation failed' });
         }
 
-        console.log('Creating rules with:', { 
+        // Step 8: Create rules
+        console.log('[Step 8/11] Saving segment rules...');
+        const rulesRow = await SegmentRules.create({ 
             name: rulesText || name, 
             rules: rulesAst, 
             createdBy: userId 
         });
-        const rulesRow = await SegmentRules.create({ name: rulesText || name, rules: rulesAst, createdBy: userId });
         if (!rulesRow) {
             return res.status(500).json({ error: 'Rules creation failed' });
         }
 
-        console.log('Creating segment with:', {
-            name,
-            description,
-            segmentRulesId: rulesRow.id,
-            segmentMetaDataId: metaDataRow.id,
-            createdBy: userId,
-            audienceSize: Number(audienceSize) || 0,
-        });
+        // Step 9: Create segment
+        console.log('[Step 9/11] Creating segment record...');
         const segment = await Segments.create({
             name,
             description,
             segmentRulesId: rulesRow.id,
             segmentMetaDataId: metaDataRow.id,
             createdBy: userId,
-            audienceSize: Number(audienceSize) || 0,
+            audienceSize: actualAudienceSize,
         });
         if (!segment) {
             return res.status(500).json({ error: 'Segment creation failed' });
         }
-        return res.status(201).json({ success: true, message: 'Segment created successfully', segment });
+
+        // Step 10: Store segment members
+        console.log('[Step 10/11] Storing', audienceCustomers.length, 'segment members...');
+        if (audienceCustomers.length > 0) {
+            try {
+                const segmentMembersData = audienceCustomers.map(customer => ({
+                    segmentId: segment.id,
+                    customerId: customer.customer_id
+                }));
+                
+                await SegmentMembers.bulkCreate(segmentMembersData, {
+                    ignoreDuplicates: true
+                });
+                
+                console.log('[Step 11/11] Segment members stored successfully');
+            } catch (memberError) {
+                console.error('[Error] Failed to store segment members:', memberError);
+            }
+        }
+
+        const duration = Date.now() - startTime;
+        console.log('[Segment Creation] Completed in', duration, 'ms');
+
+        return res.status(201).json({ 
+            success: true, 
+            message: 'Segment created successfully', 
+            segment: {
+                ...segment.toJSON(),
+                actualAudienceSize,
+                customersStored: audienceCustomers.length
+            }
+        });
     } catch (err) {
         console.error('Segment creation failed:', err.message);
         console.error('Full error details:', err);

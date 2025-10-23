@@ -76,7 +76,7 @@ export const fetchSegments = createAsyncThunk(
     'segment/fetchSegments',
     async (_, { rejectWithValue }) => {
         try {
-            const res = await axios.get(`${API_BASE}/api/dashboard/segments`, { withCredentials: true });
+            const res = await axios.get(`${API_BASE}/api/segments`, { withCredentials: true });
             const rows = Array.isArray(res.data) ? res.data : [];
             const shaped = transformRowsToSegments(rows);
             return { items: shaped, totalItems: shaped.length };

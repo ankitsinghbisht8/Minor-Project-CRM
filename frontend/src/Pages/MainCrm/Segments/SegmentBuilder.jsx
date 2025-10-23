@@ -34,26 +34,45 @@ const SegmentBuilder = () => {
   const [showRec, setShowRec] = useState(false);
   const [audienceSize, setAudienceSize] = useState(null);
   const [calculatingAudience, setCalculatingAudience] = useState(false);
+  const [creatingSegment, setCreatingSegment] = useState(false);
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [creationStep, setCreationStep] = useState('');
 
   const fieldOptions = [
-    { value: "totalSpend", label: "Total Spend" },
-    { value: "totalOrders", label: "Total Orders" },
-    { value: "visits", label: "Number of Visits" },
-    { value: "lastPurchase", label: "Last Purchase Date" },
-    { value: "registrationDate", label: "Registration Date" },
-    { value: "age", label: "Age" },
-    { value: "location", label: "Location" },
+    { value: "totalSpend", label: "Total Spend", type: "number" },
+    { value: "totalOrders", label: "Total Orders", type: "number" },
+    { value: "visits", label: "Number of Visits", type: "number" },
+    { value: "lastPurchase", label: "Last Purchase Date", type: "date" },
+    { value: "registrationDate", label: "Registration Date", type: "date" },
+    { value: "age", label: "Age", type: "number" },
+    { value: "location", label: "Location", type: "text" },
   ];
 
-  const operatorOptions = [
-    { value: "gte", label: "Greater than or equal to (≥)" },
-    { value: "lte", label: "Less than or equal to (≤)" },
-    { value: "eq", label: "Equal to (=)" },
-    { value: "gt", label: "Greater than (>)" },
-    { value: "lt", label: "Less than (<)" },
-    { value: "contains", label: "Contains" },
-    { value: "not_contains", label: "Does not contain" },
-  ];
+  const getOperatorOptions = (fieldType) => {
+    if (fieldType === 'date') {
+      return [
+        { value: "gte", label: "On or after (≥)" },
+        { value: "lte", label: "On or before (≤)" },
+        { value: "eq", label: "Exactly on (=)" },
+        { value: "gt", label: "After (>)" },
+        { value: "lt", label: "Before (<)" },
+      ];
+    } else if (fieldType === 'text') {
+      return [
+        { value: "eq", label: "Equal to (=)" },
+        { value: "contains", label: "Contains" },
+        { value: "not_contains", label: "Does not contain" },
+      ];
+    } else {
+      return [
+        { value: "gte", label: "Greater than or equal to (≥)" },
+        { value: "lte", label: "Less than or equal to (≤)" },
+        { value: "eq", label: "Equal to (=)" },
+        { value: "gt", label: "Greater than (>)" },
+        { value: "lt", label: "Less than (<)" },
+      ];
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -162,9 +181,11 @@ const SegmentBuilder = () => {
     const parts = [];
     formData.rules.forEach((item) => {
       if (item.kind === "rule") {
-        const field = fieldOptions.find((f) => f.value === item.field)?.label || item.field;
-        const operator = operatorOptions.find((o) => o.value === item.operator)?.label || item.operator;
-        parts.push(`${field} ${operator} ${item.value}`);
+        const fieldOption = fieldOptions.find((f) => f.value === item.field);
+        const field = fieldOption?.label || item.field;
+        const fieldType = fieldOption?.type || 'number';
+        const operatorLabel = getOperatorOptions(fieldType).find((o) => o.value === item.operator)?.label || item.operator;
+        parts.push(`${field} ${operatorLabel} ${item.value}`);
       } else if (item.kind === "op") {
         parts.push(item.op);
       }
@@ -234,81 +255,125 @@ const SegmentBuilder = () => {
     }
   };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      // Convert mixed rule/op list into DSL entries for backend Map
-      const operatorValueToSymbol = {
-        gte: ">=",
-        lte: "<=",
-        eq: "==",
-        gt: ">",
-        lt: "<",
-        contains: "contains",
-        not_contains: "not_contains",
-      };
+      setCreatingSegment(true);
+      setCreationProgress(0);
+      setCreationStep('Initializing...');
 
-      const map = new Map();
-      // derive overall operator from the first op (fallback AND)
-      const firstOp = (formData.rules.find((x) => x.kind === "op")?.op) || "AND";
-      map.set("operator", firstOp);
-      let previousRuleId = null;
-      formData.rules.forEach((item) => {
-        if (item.kind === "rule") {
-          map.set(`rule-${item.id}`, {
-            id: item.id,
-            field: item.field,
-            operator: operatorValueToSymbol[item.operator] || item.operator,
-            value: item.value,
-          });
-          if (previousRuleId !== null) {
-            const opBetween = formData.rules.find((x, idx, arr) => {
-              const prevIdx = arr.findIndex((r) => r.id === previousRuleId);
-              const myIdx = arr.findIndex((r) => r.id === item.id);
-              return idx === prevIdx + 1 && x.kind === "op" && myIdx === prevIdx + 2;
+      try {
+        // Prepare segment data
+        const operatorValueToSymbol = {
+          gte: ">=",
+          lte: "<=",
+          eq: "==",
+          gt: ">",
+          lt: "<",
+          contains: "contains",
+          not_contains: "not_contains",
+        };
+
+        const map = new Map();
+        const firstOp = (formData.rules.find((x) => x.kind === "op")?.op) || "AND";
+        map.set("operator", firstOp);
+        let previousRuleId = null;
+        formData.rules.forEach((item) => {
+          if (item.kind === "rule") {
+            map.set(`rule-${item.id}`, {
+              id: item.id,
+              field: item.field,
+              operator: operatorValueToSymbol[item.operator] || item.operator,
+              value: item.value,
             });
-            if (opBetween) {
-              map.set(`op-${previousRuleId}_${item.id}`, opBetween.op);
+            if (previousRuleId !== null) {
+              const opBetween = formData.rules.find((x, idx, arr) => {
+                const prevIdx = arr.findIndex((r) => r.id === previousRuleId);
+                const myIdx = arr.findIndex((r) => r.id === item.id);
+                return idx === prevIdx + 1 && x.kind === "op" && myIdx === prevIdx + 2;
+              });
+              if (opBetween) {
+                map.set(`op-${previousRuleId}_${item.id}`, opBetween.op);
+              }
             }
+            previousRuleId = item.id;
           }
-          previousRuleId = item.id;
-        }
-      });
-
-      const dslEntries = Array.from(map.entries());
-
-      const segmentData = {
-        name: formData.name,
-        description: formData.description,
-        rulesText: generateRulesText(),
-        rules: formData.rules, // mixed list with ids
-        dsl: dslEntries, // entries to reconstruct Map on backend
-        audienceSize: audienceSize || 0,
-      };
-
-      const API_BASE = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
-      const url = `${API_BASE}/api/segments`;
-
-      console.log("[Submit] POST", url, segmentData);
-
-      axios.post(url, segmentData, {
-        withCredentials: true,
-        headers: { "Content-Type": "application/json" }
-      })
-        .then((res) => {
-          console.log("[Submit:success]", res.data);
-          navigate("/dashboard/segments");
-        })
-        .catch((err) => {
-          console.error("[Submit:error]", err);
-          const errorMessage = err.response?.data?.error || err.message || "Failed to create segment";
-          alert(`Failed to create segment: ${errorMessage}`);
         });
+
+        const dslEntries = Array.from(map.entries());
+        const segmentData = {
+          name: formData.name,
+          description: formData.description,
+          rulesText: generateRulesText(),
+          rules: formData.rules,
+          dsl: dslEntries,
+          audienceSize: audienceSize || 0,
+        };
+
+        const API_BASE = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+        const url = `${API_BASE}/api/segments`;
+
+        console.log("[Submit] POST", url, segmentData);
+
+        // Simulate realistic progress based on actual backend operations
+        const progressSteps = [
+          { progress: 10, message: 'Authenticating user...', delay: 100 },
+          { progress: 20, message: 'Validating segment data...', delay: 150 },
+          { progress: 30, message: 'Building segment rules...', delay: 200 },
+          { progress: 40, message: 'Validating rules structure...', delay: 150 },
+          { progress: 50, message: 'Calculating audience size...', delay: 300 },
+          { progress: 70, message: 'Saving segment metadata...', delay: 200 },
+          { progress: 80, message: 'Creating segment record...', delay: 200 },
+          { progress: 90, message: 'Storing segment members...', delay: 300 },
+        ];
+
+        // Start progress simulation
+        let currentStep = 0;
+        const progressInterval = setInterval(() => {
+          if (currentStep < progressSteps.length) {
+            const step = progressSteps[currentStep];
+            setCreationProgress(step.progress);
+            setCreationStep(step.message);
+            currentStep++;
+          }
+        }, 200);
+
+        try {
+          // Make the actual API call
+          const response = await axios.post(url, segmentData, {
+            withCredentials: true,
+            headers: { "Content-Type": "application/json" }
+          });
+
+          // Clear interval and show completion
+          clearInterval(progressInterval);
+          setCreationProgress(100);
+          setCreationStep('Segment created successfully!');
+          
+          console.log("[Submit:success]", response.data);
+          
+          // Wait a bit to show completion
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          navigate("/segments");
+        } catch (err) {
+          clearInterval(progressInterval);
+          throw err;
+        }
+
+      } catch (err) {
+        console.error("[Submit:error]", err);
+        const errorMessage = err.message || "Failed to create segment";
+        alert(`Failed to create segment: ${errorMessage}`);
+        setCreatingSegment(false);
+        setCreationProgress(0);
+        setCreationStep('');
+      }
     }
   };
   
   const handleCancel = () => {
-    navigate("/dashboard/segments");
+    navigate("/segments");
   };
   
 
@@ -465,7 +530,9 @@ const SegmentBuilder = () => {
                             errors[`rule_${index}_operator`] ? "error" : ""
                           } ${isDarkMode ? "dark" : ""}`}
                         >
-                          {operatorOptions.map((option) => (
+                          {getOperatorOptions(
+                            fieldOptions.find(f => f.value === item.field)?.type || 'number'
+                          ).map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
                             </option>
@@ -477,15 +544,33 @@ const SegmentBuilder = () => {
                       </div>
   
                       <div className="form-group">
-                        <input
-                          type="text"
-                          value={item.value}
-                          onChange={(e) => handleRuleChange(index, "value", e.target.value)}
-                          placeholder="Value"
-                          className={`form-input ${errors[`rule_${index}_value`] ? "error" : ""} ${
-                            isDarkMode ? "dark" : ""
-                          }`}
-                        />
+                        {(() => {
+                          const fieldType = fieldOptions.find(f => f.value === item.field)?.type || 'text';
+                          if (fieldType === 'date') {
+                            return (
+                              <input
+                                type="date"
+                                value={item.value}
+                                onChange={(e) => handleRuleChange(index, "value", e.target.value)}
+                                className={`form-input ${errors[`rule_${index}_value`] ? "error" : ""} ${
+                                  isDarkMode ? "dark" : ""
+                                }`}
+                              />
+                            );
+                          } else {
+                            return (
+                              <input
+                                type={fieldType === 'number' ? 'number' : 'text'}
+                                value={item.value}
+                                onChange={(e) => handleRuleChange(index, "value", e.target.value)}
+                                placeholder="Value"
+                                className={`form-input ${errors[`rule_${index}_value`] ? "error" : ""} ${
+                                  isDarkMode ? "dark" : ""
+                                }`}
+                              />
+                            );
+                          }
+                        })()}
                         {errors[`rule_${index}_value`] && (
                           <span className="error-text">{errors[`rule_${index}_value`]}</span>
                         )}
@@ -679,14 +764,54 @@ const SegmentBuilder = () => {
             </div>
           </div>
   
+          {/* Progress Bar */}
+          {creatingSegment && (
+            <div className={`progress-section ${isDarkMode ? "dark" : ""}`}>
+              <div className="progress-header">
+                <h3 className={`progress-title ${isDarkMode ? "dark" : ""}`}>
+                  {creationStep}
+                </h3>
+                <span className={`progress-percentage ${isDarkMode ? "dark" : ""}`}>
+                  {creationProgress}%
+                </span>
+              </div>
+              <div className="progress-bar-container">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: `${creationProgress}%` }}
+                >
+                  <div className="progress-bar-shimmer"></div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="form-actions">
-            <button type="button" className="cancel-btn" onClick={handleCancel}>
+            <button 
+              type="button" 
+              className="cancel-btn" 
+              onClick={handleCancel}
+              disabled={creatingSegment}
+            >
               Cancel
             </button>
-            <button type="submit" className="submit-btn">
-              <Save size={16} />
-              Create Segment
+            <button 
+              type="submit" 
+              className="submit-btn"
+              disabled={creatingSegment}
+            >
+              {creatingSegment ? (
+                <>
+                  <span className="spinner-small"></span>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  Create Segment
+                </>
+              )}
             </button>
           </div>
         </form>

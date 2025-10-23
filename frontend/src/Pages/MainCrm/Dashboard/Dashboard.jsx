@@ -8,6 +8,7 @@ import Settings from '@mui/icons-material/Settings'
 import Notifications from '@mui/icons-material/Notifications'
 import ViewList from '@mui/icons-material/ViewList'
 import Tune from '@mui/icons-material/Tune'
+import CampaignIcon from '@mui/icons-material/Campaign'
 import MenuIcon from '@mui/icons-material/Menu'
 import ChevronLeft from '@mui/icons-material/ChevronLeft'
 import Logout from '@mui/icons-material/Logout'
@@ -29,17 +30,16 @@ const DashBoard = () => {
   const { loading: logoutLoading, error: logoutError, user } = useSelector(state => state.auth)
   const { isDarkMode, toggleDarkMode } = useDarkMode()
 
-  const [profileImgError, setProfileImgError] = useState(false)
-
   const navItems = useMemo(
     () => [
       { label: 'Dashboard', to: '/dashboard', Icon: DashboardIcon },
-      { label: 'Analytics', to: '/dashboard/analytics', Icon: QueryStats },
-      { label: 'Users', to: '/dashboard/users', Icon: Group },
-      { label: 'Segments', to: '/dashboard/segments', Icon: ViewList },
-      { label: 'Segment Builder', to: '/dashboard/segmentBuilder', Icon: Tune },
-      { label: 'Settings', to: '/dashboard/settings', Icon: Settings },
-      { label: 'Notifications', to: '/dashboard/notifications', Icon: Notifications },
+      { label: 'Analytics', to: '/analytics', Icon: QueryStats },
+      { label: 'Users', to: '/users', Icon: Group },
+      { label: 'Segments', to: '/segments', Icon: ViewList },
+      { label: 'Segment Builder', to: '/segments/builder', Icon: Tune },
+      { label: 'Campaigns', to: '/campaigns', Icon: CampaignIcon },
+      { label: 'Settings', to: '/settings', Icon: Settings },
+      { label: 'Notifications', to: '/notifications', Icon: Notifications },
     ],
     []
   )
@@ -98,14 +98,6 @@ const DashBoard = () => {
     return 'U'
   }
 
-  const getProfileImageUrl = (path) => {
-    if (!path) return null
-    if (/^https?:\/\//i.test(path)) return path
-    const base = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '')
-    const cleanPath = String(path).replace(/^\//, '')
-    return `${base}/${cleanPath}`
-  }
-
   const SidebarContent = ({ collapsed }) => (
     <div className="flex h-full flex-col">
       {/* Brand */}
@@ -123,7 +115,7 @@ const DashBoard = () => {
             <li key={label}>
               <NavLink
                 to={to}
-                end={to === '/dashboard' || to === '/dashboard/segments'}
+                end={to === '/dashboard' || to === '/segments'}
                 className={({ isActive }) =>
                   [
                     'group flex items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200',
@@ -149,12 +141,11 @@ const DashBoard = () => {
       {/* Profile */}
       <div className={`mt-auto border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'} p-3`}>
         <div className="flex items-center gap-3 px-2">
-          {user?.profilePicture && !profileImgError ? (
+          {user?.profilePicture ? (
             <img
-              src={getProfileImageUrl(user.profilePicture)}
+              src={user.profilePicture}
               alt={getUserDisplayName()}
               className="w-9 h-9 rounded-full object-cover border border-white/20"
-              onError={() => setProfileImgError(true)}
             />
           ) : (
             <div className="w-9 h-9 rounded-full bg-gradient-to-r from-orange-300 via-pink-400 to-purple-500 text-white flex items-center justify-center font-semibold">
