@@ -92,10 +92,24 @@ const Segments = () => {
     navigate("builder");
   };
 
-  const handleStartCampaign = (segmentId) => {
-    console.log(`Starting campaign for segment ID: ${segmentId}`);
-    // Here you would typically navigate to campaign creation page
-    // or open campaign modal
+  const handleStartCampaign = async (segmentId) => {
+    try {
+      const base = process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+      const seg = segments.find(s => s.id === segmentId);
+      const payload = {
+        segmentId,
+        name: `Campaign - ${seg?.name || segmentId.substring(0, 6)}`,
+        message: seg?.description || ""
+      };
+      const res = await axios.post(`${base}/api/campaigns`, payload, { withCredentials: true });
+      const campaign = res.data;
+      showToast("Campaign started successfully!", "success");
+      navigate(`/campaigns?id=${campaign.id}`);
+    } catch (error) {
+      console.error("Error starting campaign:", error);
+      const errorMessage = error.response?.data?.error || error.message;
+      showToast(`Failed to start campaign: ${errorMessage}`, "error");
+    }
   };
 
   const showToast = (message, type = "success") => {
