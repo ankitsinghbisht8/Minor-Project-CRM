@@ -16,6 +16,7 @@ import Notifications from "./Pages/MainCrm/Notifications/Notifications";
 import Segments from "./Pages/MainCrm/Segments/Segments";
 import SegmentBuilder from "./Pages/MainCrm/Segments/SegmentBuilder";
 import Campaign from "./Pages/MainCrm/Campaign/Campaign";
+import Orders from "./Pages/MainCrm/Orders/Orders";
 
 function App() {
 
@@ -36,6 +37,7 @@ function App() {
               {/* Render other sections at top-level paths using the same Dashboard layout */}
               <Route element={<Dashboard />}>
                 <Route path="/analytics" element={<Analytics />} />
+                <Route path="/orders" element={<Orders />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/segments" element={<Segments />} />
                 <Route path="/segments/builder" element={<SegmentBuilder />} />

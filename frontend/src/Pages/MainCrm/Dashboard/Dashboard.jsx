@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import DashboardIcon from '@mui/icons-material/Dashboard'
+import House from '@mui/icons-material/House'
 import QueryStats from '@mui/icons-material/QueryStats'
 import Group from '@mui/icons-material/Group'
 import Settings from '@mui/icons-material/Settings'
 import Notifications from '@mui/icons-material/Notifications'
 import ViewList from '@mui/icons-material/ViewList'
+import ShoppingCart from '@mui/icons-material/ShoppingCart'
 import Tune from '@mui/icons-material/Tune'
 import CampaignIcon from '@mui/icons-material/Campaign'
 import MenuIcon from '@mui/icons-material/Menu'
@@ -35,9 +36,10 @@ const DashBoard = () => {
 
   const navItems = useMemo(
     () => [
-      { label: 'Dashboard', to: '/dashboard', Icon: DashboardIcon },
+      { label: 'Dashboard', to: '/dashboard', Icon: House },
       { label: 'Analytics', to: '/analytics', Icon: QueryStats },
       { label: 'Users', to: '/users', Icon: Group },
+      { label: 'Orders', to: '/orders', Icon: ShoppingCart },
       { label: 'Segments', to: '/segments', Icon: ViewList },
       { label: 'Segment Builder', to: '/segments/builder', Icon: Tune },
       { label: 'Campaigns', to: '/campaigns', Icon: CampaignIcon },

@@ -2,6 +2,66 @@ const express = require('express');
 const router = express.Router();
 const sequelize = require('../config/database');
 
+// POST /api/customers - create a new customer
+router.post('/', async (req, res) => {
+    try {
+        const {
+            full_name,
+            email,
+            phone_number,
+            age,
+            gender,
+            location,
+            preferred_category,
+            mode_of_communication,
+            subscribed
+        } = req.body || {}
+
+        if (!full_name || !String(full_name).trim()) {
+            return res.status(400).json({ error: 'full_name is required' })
+        }
+        if (!email || !String(email).trim()) {
+            return res.status(400).json({ error: 'email is required' })
+        }
+
+        const clean = (v) => (v === '' || typeof v === 'undefined' ? null : v)
+        const cleanInt = (v) => (v === '' || v === null || typeof v === 'undefined' ? null : Number(v))
+
+        const [rows] = await sequelize.query(
+            `INSERT INTO customers (
+                full_name, email, phone_number, age, gender, location, preferred_category,
+                mode_of_communication, subscribed, created_at, updated_at
+            ) VALUES (
+                :full_name, :email, :phone_number, :age, :gender, :location, :preferred_category,
+                :mode_of_communication, COALESCE(:subscribed, TRUE), NOW(), NOW()
+            ) RETURNING customer_id, full_name, email, phone_number, age, gender, location,
+              preferred_category, mode_of_communication, total_orders, total_amount, created_at, updated_at`,
+            {
+                replacements: {
+                    full_name: String(full_name).trim(),
+                    email: String(email).trim(),
+                    phone_number: clean(phone_number),
+                    age: cleanInt(age),
+                    gender: clean(gender),
+                    location: clean(location),
+                    preferred_category: clean(preferred_category),
+                    mode_of_communication: mode_of_communication || null,
+                    subscribed: typeof subscribed === 'boolean' ? subscribed : null,
+                }
+            }
+        )
+
+        return res.status(201).json(rows[0])
+    } catch (err) {
+        const code = err?.original?.code || err?.parent?.code
+        if (code === '23505') {
+            return res.status(409).json({ error: 'Email already exists' })
+        }
+        console.error('Create customer failed:', err.message)
+        return res.status(500).json({ error: 'Failed to create customer' })
+    }
+})
+
 // GET /api/customers
 // Query params: page, limit, search, location, minOrders, segment, subscribed, sortBy, sortDir
 router.get('/', async (req, res) => {
@@ -144,6 +204,68 @@ router.get('/:id/interactions', async (req, res) => {
         res.status(500).json({ error: 'Failed to list customer interactions' });
     }
 });
+
+// POST /api/customers/:id/orders - create a new order for a customer
+router.post('/:id/orders', async (req, res) => {
+    const t = await sequelize.transaction()
+    try {
+        const { id } = req.params
+        const {
+            order_amount,
+            category,
+            order_status = 'Pending',
+            payment_method = 'Card',
+            order_date
+        } = req.body || {}
+
+        if (!order_amount || isNaN(Number(order_amount))) {
+            await t.rollback()
+            return res.status(400).json({ error: 'order_amount is required' })
+        }
+
+        const [custRows] = await sequelize.query('SELECT customer_id FROM customers WHERE customer_id = :id', { replacements: { id }, transaction: t })
+        if (!custRows.length) {
+            await t.rollback()
+            return res.status(404).json({ error: 'Customer not found' })
+        }
+
+        const [rows] = await sequelize.query(
+            `INSERT INTO orders (customer_id, order_date, order_amount, category, order_status, payment_method)
+             VALUES (:id, COALESCE(:order_date, NOW()), :order_amount, :category, :order_status, :payment_method)
+             RETURNING order_id, customer_id, order_date, order_amount, category, order_status, payment_method, created_at`,
+            {
+                replacements: {
+                    id,
+                    order_date: order_date || null,
+                    order_amount: Number(order_amount),
+                    category: category || null,
+                    order_status,
+                    payment_method
+                },
+                transaction: t
+            }
+        )
+
+        // update aggregates for completed orders
+        if (String(order_status).toLowerCase() === 'completed') {
+            await sequelize.query(
+                `UPDATE customers
+                 SET total_orders = COALESCE(total_orders,0) + 1,
+                     total_amount = COALESCE(total_amount,0) + :amount,
+                     updated_at = NOW()
+                 WHERE customer_id = :id`,
+                { replacements: { id, amount: Number(order_amount) }, transaction: t }
+            )
+        }
+
+        await t.commit()
+        return res.status(201).json(rows[0])
+    } catch (err) {
+        await t.rollback()
+        console.error('Create order failed:', err.message)
+        return res.status(500).json({ error: 'Failed to create order' })
+    }
+})
 
 module.exports = router;
 

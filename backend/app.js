@@ -14,6 +14,7 @@ const ragRoutes = require('./routes/rag');
 const customersRoutes = require('./routes/customers');
 const segmentsRoutes = require('./routes/segments');
 const campaignsRoutes = require('./routes/campaigns');
+const ordersRoutes = require('./routes/orders');
 
 // Basic setup
 dotenv.config();
@@ -54,8 +55,11 @@ app.use('/auth', googleAuthRoutes);
 app.use('/api/auth', jwtAuthRoutes);
 app.use('/api/rag', ragRoutes);
 app.use('/api/customers', customersRoutes);
+// Backward/alias route to avoid 404 if frontend points to singular path
+app.use('/api/customer', customersRoutes);
 app.use('/api', segmentsRoutes);
 app.use('/api', campaignsRoutes);
+app.use('/api/orders', ordersRoutes);
 
 // Test route
 app.get('/api/test', (req, res) => {

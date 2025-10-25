@@ -12,6 +12,9 @@ const Overview = () => {
   const [overallSuccessRate, setOverallSuccessRate] = React.useState(null)
   const [loadingCounts, setLoadingCounts] = React.useState(true)
   const [countsError, setCountsError] = React.useState(null)
+  const [kpis, setKpis] = React.useState({ revenue: 0, total_orders: 0, completed_orders: 0, avg_order: 0 })
+  const [recentOrders, setRecentOrders] = React.useState([])
+  const [recentActivity, setRecentActivity] = React.useState([])
   
   // Get user's first name or fallback to email
   const getUserDisplayName = () => {
@@ -35,9 +38,10 @@ const Overview = () => {
         setLoadingCounts(true)
         setCountsError(null)
 
-        const [usersRes, campaignsRes] = await Promise.all([
+        const [usersRes, campaignsRes, metricsRes] = await Promise.all([
           axios.get(`${base}/api/customers`, { params: { page: 1, limit: 1 } }),
           axios.get(`${base}/api/campaigns`),
+          axios.get(`${base}/api/orders/metrics`),
         ])
 
         if (cancelled) return
@@ -55,6 +59,9 @@ const Overview = () => {
         setTotalUsers(usersTotal)
         setSuccessfulCampaigns(successfulCount)
         setOverallSuccessRate(successRate)
+        setKpis(metricsRes?.data?.kpis || {})
+        setRecentOrders(metricsRes?.data?.recentOrders || [])
+        setRecentActivity(metricsRes?.data?.recentActivity || [])
       } catch (e) {
         if (cancelled) return
         setCountsError('Failed to load counts')
@@ -97,27 +104,82 @@ const Overview = () => {
         </div>
       </div>
 
-      {/* Dashboard Content */}
-      <div className={`rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} p-6`}>
-        <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>Dashboard Overview</h2>
-        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Key stats from your CRM and campaigns.</p>
-        
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+      {/* KPI Cards */}
+      <div className={`rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} p-4 mb-2`}>
+        <h2 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray'} mb-4`}>Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
           <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
             <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Total Users</h3>
             <p className="text-2xl font-bold text-blue-600 mt-2">{loadingCounts ? '...' : (totalUsers ?? '--')}</p>
             <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{countsError ? countsError : 'All customers in database'}</p>
           </div>
           <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
-            <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Successful Campaigns</h3>
-            <p className="text-2xl font-bold text-green-600 mt-2">{loadingCounts ? '...' : (successfulCampaigns ?? '--')}</p>
-            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{countsError ? countsError : 'Completed campaigns with successes'}</p>
+            <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Revenue</h3>
+            <p className="text-2xl font-bold text-green-600 mt-2">{loadingCounts ? '...' : `₹${Number(kpis.revenue || 0).toFixed(2)}`}</p>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Completed orders revenue</p>
           </div>
           <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
-            <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Analytics</h3>
-            <p className="text-2xl font-bold text-purple-600 mt-2">{loadingCounts ? '...' : `${overallSuccessRate ?? 0}%`}</p>
-            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Overall campaign success rate</p>
+            <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Total Orders</h3>
+            <p className="text-2xl font-bold text-purple-600 mt-2">{loadingCounts ? '...' : (kpis.total_orders ?? 0)}</p>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>All orders</p>
+          </div>
+          <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-4`}>
+            <h3 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Avg Order</h3>
+            <p className="text-2xl font-bold text-indigo-600 mt-2">{loadingCounts ? '...' : `₹${Number(kpis.avg_order || 0).toFixed(2)}`}</p>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Average amount</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders & Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mt-2">
+        <div className={`rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} p-6 lg:col-span-2`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray'}`}>Recent Orders</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead>
+                <tr>
+                  <th className="px-4 py-2 text-left text-gray-500">Order</th>
+                  <th className="px-4 py-2 text-left text-gray-500">Customer</th>
+                  <th className="px-4 py-2 text-left text-gray-500">Date</th>
+                  <th className="px-4 py-2 text-left text-gray-500">Amount</th>
+                  <th className="px-4 py-2 text-left text-gray-500">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recentOrders.map((o) => (
+                  <tr key={o.order_id}>
+                    <td className="px-4 py-2">#{String(o.order_id).slice(0,8)}</td>
+                    <td className="px-4 py-2">{o.full_name}</td>
+                    <td className="px-4 py-2">{new Date(o.order_date).toLocaleDateString()}</td>
+                    <td className="px-4 py-2">₹{Number(o.order_amount).toFixed(2)}</td>
+                    <td className="px-4 py-2">{o.order_status}</td>
+                  </tr>
+                ))}
+                {!recentOrders.length && (
+                  <tr><td className="px-4 py-6 text-gray-500" colSpan={5}>No recent orders</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+          <div className={`rounded-xl border ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'} p-6`}>
+            <h3 className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray'} mb-4`}>Recent Activity</h3>
+            <div className='space-y-8'>
+            {recentActivity.map(a => (
+              <div key={a.id} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">✓</div>
+                <div className="min-w-0">
+                  <p className={`${isDarkMode ? 'text-white' : 'text-gray-900'} text-sm font-medium`}>{a.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{a.subtitle} • ₹{Number(a.amount || 0).toFixed(2)}</p>
+                </div>
+                <div className="ml-auto text-xs text-gray-500">{new Date(a.ts).toLocaleTimeString()}</div>
+              </div>
+            ))}
+            {!recentActivity.length && <p className="text-sm text-gray-500">No recent activity</p>}
           </div>
         </div>
       </div>

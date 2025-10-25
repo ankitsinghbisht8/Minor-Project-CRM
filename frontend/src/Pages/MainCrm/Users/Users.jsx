@@ -31,6 +31,25 @@ const Users = () => {
     loading: false,
     error: null,
   });
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+  const [newUser, setNewUser] = useState({
+    full_name: "",
+    email: "",
+    phone_number: "",
+    location: "",
+    mode_of_communication: "Email",
+    subscribed: true,
+  });
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [orderError, setOrderError] = useState(null);
+  const [newOrder, setNewOrder] = useState({
+    order_amount: "",
+    category: "",
+    order_status: "Completed",
+    payment_method: "Card",
+  });
 
   const params = useMemo(() => {
     const p = { page, limit, sortBy, sortDir };
@@ -142,7 +161,15 @@ const Users = () => {
         <div>
           <p className="mt-1 text-2xl font-semibold text-gray-900">Manage your users here.</p>
         </div>
-        <div className="text-sm text-gray-600">Total: {total}</div>
+        <div className="flex items-center gap-3">
+          <button
+            className="px-3 py-2 text-sm rounded bg-gray-900 text-white"
+            onClick={() => setShowCreateUser(true)}
+          >
+            + New User
+          </button>
+          <div className="text-sm text-gray-600">Total: {total}</div>
+        </div>
       </div>
 
       {loading && <div className="mt-4 text-sm text-gray-500">Loading...</div>}
@@ -331,12 +358,20 @@ const Users = () => {
                   {selected.customer_segment || "-"}
                 </p>
               </div>
-              <button
-                className="text-sm px-3 py-1 rounded border"
-                onClick={() => setSelected(null)}
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-sm px-3 py-1 rounded border"
+                  onClick={() => setCreatingOrder(true)}
+                >
+                  + Add Order
+                </button>
+                <button
+                  className="text-sm px-3 py-1 rounded border"
+                  onClick={() => setSelected(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -411,6 +446,105 @@ const Users = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateUser && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Create User</h3>
+            {createError && <div className="text-sm text-red-600 mb-2">{createError}</div>}
+            <div className="grid grid-cols-1 gap-3">
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Full name" value={newUser.full_name} onChange={(e)=>setNewUser({...newUser, full_name:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Email" value={newUser.email} onChange={(e)=>setNewUser({...newUser, email:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Phone" value={newUser.phone_number} onChange={(e)=>setNewUser({...newUser, phone_number:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Location" value={newUser.location} onChange={(e)=>setNewUser({...newUser, location:e.target.value})} />
+              <select className="border rounded px-3 py-2 text-sm" value={newUser.mode_of_communication} onChange={(e)=>setNewUser({...newUser, mode_of_communication:e.target.value})}>
+                <option>Email</option>
+                <option>SMS</option>
+                <option>WhatsApp</option>
+                <option>Call</option>
+                <option>In-App</option>
+              </select>
+              <label className="text-sm inline-flex items-center gap-2">
+                <input type="checkbox" checked={newUser.subscribed} onChange={(e)=>setNewUser({...newUser, subscribed:e.target.checked})} />
+                Subscribed
+              </label>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border text-sm" onClick={()=> setShowCreateUser(false)}>Cancel</button>
+              <button
+                className="px-3 py-1 rounded bg-gray-900 text-white text-sm disabled:opacity-50"
+                disabled={creating}
+                onClick={async ()=>{
+                  try{
+                    setCreating(true); setCreateError(null)
+                    if (!newUser.full_name.trim()) throw new Error('Name is required')
+                    if (!newUser.email.trim()) throw new Error('Email is required')
+                    const base = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`
+                    await axios.post(`${base}/api/customers`, newUser, { withCredentials:true })
+                    setShowCreateUser(false)
+                    setNewUser({ full_name: "", email: "", phone_number: "", location: "", mode_of_communication: "Email", subscribed: true })
+                    setPage(1)
+                    setFilters({ ...filters })
+                  }catch(e){
+                    setCreateError(e.response?.data?.error || e.message || 'Failed to create user')
+                  }finally{ setCreating(false) }
+                }}
+              >
+                {creating ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {creatingOrder && selected && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Add Order for {selected.full_name}</h3>
+            {orderError && <div className="text-sm text-red-600 mb-2">{orderError}</div>}
+            <div className="grid grid-cols-1 gap-3">
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Amount" type="number" value={newOrder.order_amount} onChange={(e)=>setNewOrder({...newOrder, order_amount:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Category" value={newOrder.category} onChange={(e)=>setNewOrder({...newOrder, category:e.target.value})} />
+              <select className="border rounded px-3 py-2 text-sm" value={newOrder.order_status} onChange={(e)=>setNewOrder({...newOrder, order_status:e.target.value})}>
+                <option>Completed</option>
+                <option>Pending</option>
+                <option>Cancelled</option>
+                <option>Returned</option>
+              </select>
+              <select className="border rounded px-3 py-2 text-sm" value={newOrder.payment_method} onChange={(e)=>setNewOrder({...newOrder, payment_method:e.target.value})}>
+                <option>Card</option>
+                <option>Cash</option>
+                <option>UPI</option>
+                <option>Wallet</option>
+                <option>NetBanking</option>
+              </select>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border text-sm" onClick={()=> setCreatingOrder(false)}>Cancel</button>
+              <button
+                className="px-3 py-1 rounded bg-gray-900 text-white text-sm disabled:opacity-50"
+                disabled={creating}
+                onClick={async ()=>{
+                  try{
+                    setCreating(true); setOrderError(null)
+                    const base = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`
+                    await axios.post(`${base}/api/customers/${selected.customer_id}/orders`, newOrder, { withCredentials:true })
+                    const ordersRes = await axios.get(`${base}/api/customers/${selected.customer_id}/orders`, { withCredentials: true, params:{ limit: 10 }})
+                    setDetails(prev => ({ ...prev, orders: ordersRes.data.data || [] }))
+                    setCreatingOrder(false)
+                    setNewOrder({ order_amount: "", category: "", order_status: "Completed", payment_method: "Card" })
+                    setPage(1); setFilters({ ...filters })
+                  }catch(e){
+                    setOrderError(e.response?.data?.error || 'Failed to create order')
+                  }finally{ setCreating(false) }
+                }}
+              >
+                {creating ? 'Saving...' : 'Save Order'}
+              </button>
             </div>
           </div>
         </div>
