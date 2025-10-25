@@ -7,6 +7,17 @@ const Header = () => {
   const navigate = useNavigate();
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+  const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const headerEl = document.querySelector('header');
+    const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const pageOffset = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const y = el.getBoundingClientRect().top + pageOffset - headerHeight;
+    window.scrollTo({ top: Math.max(y, 0), behavior: 'smooth' });
+    setIsMenuOpen(false);
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -14,8 +25,8 @@ const Header = () => {
       transition={{ duration: 0.6 }}
       className="fixed top-0 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 z-50"
     >
-      <nav className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center p-4 h-16">
+      <nav className="max-w-7xl mx-auto py-1 px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center p-4 h-0">
           {/* Logo */}
           <motion.div
             whileHover={{ scale: 1.05 }}
@@ -31,39 +42,33 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-8">
             <div className="flex items-center space-x-10">
               <div className="relative group">
-                <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
+                <button onClick={() => scrollToId('products')} className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
                   <span>Products</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  
                 </button>
               </div>
               
               <div className="relative group">
-                <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
+                <button onClick={() => scrollToId('solutions')} className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
                   <span>Solutions</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  
                 </button>
               </div>
 
               <div className="relative group">
-                <button className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
+                <button onClick={() => scrollToId('resources')} className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 font-medium">
                   <span>Resources</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  
                 </button>
               </div>
 
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">
+              <button onClick={() => scrollToId('pricing')} className="text-gray-700 hover:text-gray-900 font-medium">
                 Pricing
-              </a>
+              </button>
             </div>
 
             <div className="flex items-center space-x-8">
-              <button className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 font-medium">
+              <button onClick={() => navigate('/register?mode=login')} className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 font-medium">
                 <span>🔒</span>
                 <span>Login</span>
               </button>
@@ -105,13 +110,13 @@ const Header = () => {
             className="md:hidden py-4"
           >
             <div className="flex flex-col space-y-4">
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Products</a>
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Solutions</a>
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Resources</a>
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Pricing</a>
+              <button onClick={() => scrollToId('products')} className="text-gray-700 hover:text-gray-900 font-medium text-left">Products</button>
+              <button onClick={() => scrollToId('solutions')} className="text-gray-700 hover:text-gray-900 font-medium text-left">Solutions</button>
+              <button onClick={() => scrollToId('resources')} className="text-gray-700 hover:text-gray-900 font-medium text-left">Resources</button>
+              <button onClick={() => scrollToId('pricing')} className="text-gray-700 hover:text-gray-900 font-medium text-left">Pricing</button>
               <hr className="border-gray-200" />
-              <a href="#" className="text-gray-700 hover:text-gray-900 font-medium">Login</a>
-              <button className="bg-gray-900 text-white px-6 py-2 rounded-lg font-semibold text-left">
+              <button onClick={() => { navigate('/register?mode=login'); setIsMenuOpen(false); }} className="text-gray-700 hover:text-gray-900 font-medium text-left">Login</button>
+              <button onClick={() => { navigate('/register'); setIsMenuOpen(false); }} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-semibold text-left">
                 Create free account
               </button>
             </div>

@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useRef, useState, startTransition } from 'react'
 import { AnimatePresence, motion, useMotionValue, useReducedMotion } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import RegisterForm from '../../components/AuthComponents/RegisterForm'
 import LoginForm from '../../components/AuthComponents/LoginForm'
 import { useNavigate } from 'react-router-dom'
@@ -14,6 +15,7 @@ const Register = () => {
   const [showBg, setShowBg] = useState(false)
   const rafId = useRef(null)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const onClickSignIn=()=>{
     setIsLogin(true);
@@ -34,6 +36,13 @@ const Register = () => {
     const t = setTimeout(() => setShowBg(true), 250)
     return () => { clearTimeout(t); window.removeEventListener('pointermove', onMove) }
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('mode') === 'login') {
+      setIsLogin(true)
+    }
+  }, [location.search])
 
   return (
     <div className="relative min-h-screen overflow-hidden">

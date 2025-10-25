@@ -15,7 +15,7 @@ import Logout from '@mui/icons-material/Logout'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { logout } from '../../../redux/slices/authslice'
 import { useDarkMode } from '../../../contexts/DarkModeContext'
 import { Snackbar, Alert, CircularProgress, Backdrop } from '@mui/material'
@@ -29,6 +29,7 @@ const DashBoard = () => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { loading: logoutLoading, error: logoutError, user } = useSelector(state => state.auth)
   const { isDarkMode, toggleDarkMode } = useDarkMode()
 
@@ -45,6 +46,15 @@ const DashBoard = () => {
     ],
     []
   )
+
+  const currentTitle = React.useMemo(() => {
+    const path = (location.pathname || '').replace(/\/$/, '')
+    // Find the longest matching nav item by path prefix
+    const match = [...navItems]
+      .sort((a, b) => b.to.length - a.to.length)
+      .find(item => path === item.to || path.startsWith(item.to + '/'))
+    return match ? match.label : 'Dashboard'
+  }, [location.pathname, navItems])
 
   const handleLogout = async () => {
     try {
@@ -80,6 +90,19 @@ const DashBoard = () => {
 
   const toggleChatbot = () => setIsChatbotOpen(v => !v)
 
+  // Lock background scroll when mobile sidebar is open
+  React.useEffect(() => {
+    const original = document.body.style.overflow
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = original || ''
+    }
+    return () => {
+      document.body.style.overflow = original || ''
+    }
+  }, [isMobileSidebarOpen])
+
   const getUserDisplayName = () => {
     if (user?.name) {
       return user.name.split(' ')[0]
@@ -109,7 +132,7 @@ const DashBoard = () => {
         <div className="w-9 h-9 bg-gradient-to-r from-orange-300 via-pink-400 to-purple-500 rounded-lg flex items-center justify-center shrink-0">
           <span className="text-white font-bold">D</span>
         </div>
-        {!collapsed && <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>DataPulse</span>}
+        {!collapsed && <span className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>DataPulse</span>}
       </div>
 
       {/* Nav */}
@@ -185,7 +208,10 @@ const DashBoard = () => {
         <div className={`absolute -top-28 -left-28 w-[28rem] h-[28rem] rounded-full ${isDarkMode ? 'bg-purple-500/20' : 'bg-purple-300/40'} blur-3xl`} />
       </div>
       {/* Top bar */}
-      <div className={`sticky top-0 z-30 flex items-center justify-between border-b ${isDarkMode ? 'border-gray-700 bg-gray-900/90' : 'border-gray-100 bg-gradient-to-r from-white/90 via-orange-50/80 to-purple-50/80'} backdrop-blur px-4 py-3 md:pl-6`}>
+      <div className={[
+        `sticky top-0 z-30 flex items-center justify-between border-b ${isDarkMode ? 'border-gray-700 bg-gray-900/90' : 'border-gray-100 bg-gradient-to-r from-white/90 via-orange-50/80 to-purple-50/80'} backdrop-blur px-4 py-3`,
+        isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'
+      ].join(' ')}>
         <div className="flex items-center gap-3">
           {/* Mobile: open sidebar */}
           <button
@@ -195,11 +221,8 @@ const DashBoard = () => {
           >
             <MenuIcon fontSize="small" />
           </button>
-          <div className="hidden md:flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-orange-300 via-pink-400 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">D</span>
-            </div>
-            <span className={`text-base font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Dashboard</span>
+          <div className="hidden md:flex items-center gap-3 ml-8">
+            <span className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{currentTitle}</span>
           </div>
         </div>
 
@@ -235,6 +258,7 @@ const DashBoard = () => {
           `hidden md:flex fixed inset-y-0 left-0 z-40 border-r ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`,
           isDarkMode ? 'bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-b from-white via-orange-50 to-purple-50',
           isSidebarCollapsed ? 'w-20' : 'w-64',
+          'shadow-xl'
         ].join(' ')}
       >
         <SidebarContent collapsed={isSidebarCollapsed} />
@@ -250,7 +274,7 @@ const DashBoard = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-40 bg-black/30"
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
               onClick={() => setIsMobileSidebarOpen(false)}
             />
             <motion.aside
@@ -269,7 +293,7 @@ const DashBoard = () => {
 
       {/* Main content */}
       <main className={[
-        'px-4 py-6 md:pl-6 min-h-[calc(100vh-64px)] pb-10',
+        'px-4 py-6 min-h-[calc(100vh-64px)] pb-10 transition-[margin] duration-200 ease-out',
         isSidebarCollapsed ? 'md:ml-20' : 'md:ml-64',
       ].join(' ')}>
         <div className="max-w-7xl mx-auto">
