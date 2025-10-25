@@ -1,10 +1,29 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Play, Trash2, MoreVertical, Users, Calendar, X, AlertTriangle } from "lucide-react";
 import "./SegmentTable.css";
 
 const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, isDarkMode }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, segment: null });
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function onDocMouseDown(e) {
+      if (!activeDropdown) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setActiveDropdown(null);
+      }
+    }
+    function onDocKeyDown(e) {
+      if (e.key === 'Escape') setActiveDropdown(null);
+    }
+    document.addEventListener('mousedown', onDocMouseDown);
+    document.addEventListener('keydown', onDocKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown);
+      document.removeEventListener('keydown', onDocKeyDown);
+    };
+  }, [activeDropdown]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -110,7 +129,7 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, isDarkMode }
                       <Play size={16} />
                       Start Campaign
                     </button>
-                    <div className="dropdown-container">
+                    <div className="dropdown-container" ref={activeDropdown === segment.id ? menuRef : null}>
                       <button
                         className="action-btn secondary"
                         onClick={() => handleDropdownToggle(segment.id)}
@@ -125,7 +144,7 @@ const SegmentTable = ({ segments, onStartCampaign, onDeleteSegment, isDarkMode }
                             onClick={() => handleAction("delete", segment.id)}
                           >
                             <Trash2 size={14} />
-                            Delete Segment
+                            Delete
                           </button>
                         </div>
                       )}

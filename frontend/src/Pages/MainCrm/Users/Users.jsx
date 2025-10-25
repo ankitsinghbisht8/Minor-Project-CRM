@@ -51,6 +51,19 @@ const Users = () => {
     payment_method: "Card",
   });
 
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+  const [editUser, setEditUser] = useState({
+    full_name: "",
+    email: "",
+    phone_number: "",
+    location: "",
+    mode_of_communication: "Email",
+    subscribed: true,
+  });
+  const [deleting, setDeleting] = useState(false);
+
   const params = useMemo(() => {
     const p = { page, limit, sortBy, sortDir };
     if (filters.search) p.search = filters.search;
@@ -153,6 +166,14 @@ const Users = () => {
     return () => {
       canceled = true;
     };
+  }, [selected]);
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setSelected(null);
+    }
+    if (selected) document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [selected]);
 
   return (
@@ -348,7 +369,7 @@ const Users = () => {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3" onMouseDown={(e)=> { if (e.target === e.currentTarget) setSelected(null); }}>
           <div className="bg-white rounded-xl shadow-xl w-full max-w-full sm:max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
@@ -364,6 +385,46 @@ const Users = () => {
                   onClick={() => setCreatingOrder(true)}
                 >
                   + Add Order
+                </button>
+                <button
+                  className="text-sm px-3 py-1 rounded border"
+                  onClick={() => {
+                    if (!selected) return;
+                    setEditUser({
+                      full_name: selected.full_name || "",
+                      email: selected.email || "",
+                      phone_number: selected.phone_number || "",
+                      location: selected.location || "",
+                      mode_of_communication: selected.mode_of_communication || "Email",
+                      subscribed: Boolean(selected.subscribed),
+                    });
+                    setShowEditUser(true);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="text-sm px-3 py-1 rounded border text-red-600"
+                  disabled={deleting}
+                  onClick={async () => {
+                    if (!selected) return;
+                    const ok = window.confirm(`Delete user ${selected.full_name}? This will remove related orders and interactions.`);
+                    if (!ok) return;
+                    try {
+                      setDeleting(true);
+                      const base = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`.replace(/\/$/, "");
+                      await axios.delete(`${base}/api/customers/${selected.customer_id}`, { withCredentials: true });
+                      setSelected(null);
+                      setPage(1);
+                      setFilters({ ...filters });
+                    } catch (e) {
+                      alert(e.response?.data?.error || "Failed to delete user");
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
                 </button>
                 <button
                   className="text-sm px-3 py-1 rounded border"
@@ -544,6 +605,56 @@ const Users = () => {
                 }}
               >
                 {creating ? 'Saving...' : 'Save Order'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditUser && selected && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Edit User</h3>
+            {updateError && <div className="text-sm text-red-600 mb-2">{updateError}</div>}
+            <div className="grid grid-cols-1 gap-3">
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Full name" value={editUser.full_name} onChange={(e)=>setEditUser({...editUser, full_name:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Email" value={editUser.email} onChange={(e)=>setEditUser({...editUser, email:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Phone" value={editUser.phone_number} onChange={(e)=>setEditUser({...editUser, phone_number:e.target.value})} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Location" value={editUser.location} onChange={(e)=>setEditUser({...editUser, location:e.target.value})} />
+              <select className="border rounded px-3 py-2 text-sm" value={editUser.mode_of_communication} onChange={(e)=>setEditUser({...editUser, mode_of_communication:e.target.value})}>
+                <option>Email</option>
+                <option>SMS</option>
+                <option>WhatsApp</option>
+                <option>Call</option>
+                <option>In-App</option>
+              </select>
+              <label className="text-sm inline-flex items-center gap-2">
+                <input type="checkbox" checked={editUser.subscribed} onChange={(e)=>setEditUser({...editUser, subscribed:e.target.checked})} />
+                Subscribed
+              </label>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border text-sm" onClick={()=> setShowEditUser(false)}>Cancel</button>
+              <button
+                className="px-3 py-1 rounded bg-gray-900 text-white text-sm disabled:opacity-50"
+                disabled={updating}
+                onClick={async ()=>{
+                  try{
+                    setUpdating(true); setUpdateError(null)
+                    if (!editUser.full_name.trim()) throw new Error('Name is required')
+                    if (!editUser.email.trim()) throw new Error('Email is required')
+                    const base = `${process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"}`.replace(/\/$/, "")
+                    const res = await axios.put(`${base}/api/customers/${selected.customer_id}`, editUser, { withCredentials:true })
+                    setShowEditUser(false)
+                    setSelected(prev => prev ? { ...prev, ...res.data } : prev)
+                    setPage(1)
+                    setFilters({ ...filters })
+                  }catch(e){
+                    setUpdateError(e.response?.data?.error || e.message || 'Failed to update user')
+                  }finally{ setUpdating(false) }
+                }}
+              >
+                {updating ? 'Saving…' : 'Save'}
               </button>
             </div>
           </div>

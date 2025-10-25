@@ -267,6 +267,84 @@ router.post('/:id/orders', async (req, res) => {
     }
 })
 
+// PUT /api/customers/:id - update a customer
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params
+        const allowed = [
+            'full_name',
+            'email',
+            'phone_number',
+            'age',
+            'gender',
+            'location',
+            'preferred_category',
+            'mode_of_communication',
+            'subscribed',
+            'customer_segment'
+        ]
+        const updates = []
+        const params = { id }
+
+        // Email uniqueness check if changing
+        if (typeof req.body?.email !== 'undefined') {
+            const newEmail = String(req.body.email).trim()
+            if (!newEmail) return res.status(400).json({ error: 'email cannot be empty' })
+            const [dupes] = await sequelize.query(
+                'SELECT customer_id FROM customers WHERE LOWER(email) = LOWER(:email) AND customer_id <> :id',
+                { replacements: { email: newEmail, id } }
+            )
+            if (dupes.length) return res.status(409).json({ error: 'Email already exists' })
+        }
+
+        for (const key of allowed) {
+            if (Object.prototype.hasOwnProperty.call(req.body || {}, key)) {
+                const value = req.body[key]
+                if (key === 'age') {
+                    updates.push(`age = :age`)
+                    params.age = (value === '' || value === null || typeof value === 'undefined') ? null : Number(value)
+                } else if (key === 'subscribed') {
+                    updates.push(`subscribed = :subscribed`)
+                    params.subscribed = typeof value === 'boolean' ? value : String(value) === 'true'
+                } else if (key === 'mode_of_communication') {
+                    updates.push(`mode_of_communication = :mode_of_communication`)
+                    params.mode_of_communication = value || null
+                } else {
+                    updates.push(`${key} = :${key}`)
+                    params[key] = (value === '' || typeof value === 'undefined') ? null : value
+                }
+            }
+        }
+
+        if (!updates.length) return res.status(400).json({ error: 'No fields to update' })
+
+        const sql = `UPDATE customers SET ${updates.join(', ')}, updated_at = NOW() WHERE customer_id = :id
+            RETURNING customer_id, full_name, email, phone_number, age, gender, location, preferred_category,
+                      mode_of_communication, total_orders, total_amount, last_visited, last_contacted,
+                      customer_segment, subscribed, rag_recommended_segment, rag_confidence, rag_rationale,
+                      last_segmented_at, created_at, updated_at`
+        const [rows] = await sequelize.query(sql, { replacements: params })
+        if (!rows.length) return res.status(404).json({ error: 'Customer not found' })
+        return res.json(rows[0])
+    } catch (err) {
+        console.error('Update customer failed:', err.message)
+        return res.status(500).json({ error: 'Failed to update customer' })
+    }
+})
+
+// DELETE /api/customers/:id - delete a customer (cascades orders/interactions)
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params
+        const [rows] = await sequelize.query('DELETE FROM customers WHERE customer_id = :id RETURNING customer_id', { replacements: { id } })
+        if (!rows.length) return res.status(404).json({ error: 'Customer not found' })
+        return res.status(204).send()
+    } catch (err) {
+        console.error('Delete customer failed:', err.message)
+        return res.status(500).json({ error: 'Failed to delete customer' })
+    }
+})
+
 module.exports = router;
 
 

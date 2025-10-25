@@ -125,6 +125,113 @@ router.get('/metrics', async (_req, res) => {
   }
 })
 
+// PUT /api/orders/:id - update an order and fix aggregates if status/amount changes
+router.put('/:id', async (req, res) => {
+  const t = await sequelize.transaction()
+  try {
+    const { id } = req.params
+    const [existingRows] = await sequelize.query(
+      'SELECT order_id, customer_id, order_amount, order_status FROM orders WHERE order_id = :id',
+      { replacements: { id }, transaction: t }
+    )
+    if (!existingRows.length) { await t.rollback(); return res.status(404).json({ error: 'Order not found' }) }
+    const existing = existingRows[0]
+
+    const allowed = ['order_date', 'order_amount', 'category', 'order_status', 'payment_method']
+    const updates = []
+    const params = { id }
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body || {}, key)) {
+        const value = req.body[key]
+        if (key === 'order_amount') {
+          updates.push('order_amount = :order_amount')
+          params.order_amount = Number(value)
+        } else if (key === 'order_date') {
+          updates.push('order_date = COALESCE(:order_date, order_date)')
+          params.order_date = value || null
+        } else {
+          updates.push(`${key} = :${key}`)
+          params[key] = (value === '' || typeof value === 'undefined') ? null : value
+        }
+      }
+    }
+    if (!updates.length) { await t.rollback(); return res.status(400).json({ error: 'No fields to update' }) }
+
+    // Adjust aggregates if the completion status or amount changed relative to Completed status
+    const newStatus = Object.prototype.hasOwnProperty.call(params, 'order_status') ? String(params.order_status) : existing.order_status
+    const newAmount = Object.prototype.hasOwnProperty.call(params, 'order_amount') ? Number(params.order_amount) : Number(existing.order_amount)
+    const wasCompleted = String(existing.order_status).toLowerCase() === 'completed'
+    const nowCompleted = String(newStatus).toLowerCase() === 'completed'
+
+    // Run the updates
+    const [rows] = await sequelize.query(
+      `UPDATE orders SET ${updates.join(', ')} WHERE order_id = :id
+       RETURNING order_id, customer_id, order_date, order_amount, category, order_status, payment_method, created_at`,
+      { replacements: params, transaction: t }
+    )
+
+    if (wasCompleted && !nowCompleted) {
+      // subtract previous amount and decrement order count
+      await sequelize.query(
+        `UPDATE customers SET total_orders = GREATEST(COALESCE(total_orders,0) - 1, 0), total_amount = COALESCE(total_amount,0) - :prevAmount, updated_at = NOW() WHERE customer_id = :cid`,
+        { replacements: { cid: existing.customer_id, prevAmount: Number(existing.order_amount) }, transaction: t }
+      )
+    } else if (!wasCompleted && nowCompleted) {
+      // add new amount and increment order count
+      await sequelize.query(
+        `UPDATE customers SET total_orders = COALESCE(total_orders,0) + 1, total_amount = COALESCE(total_amount,0) + :newAmount, updated_at = NOW() WHERE customer_id = :cid`,
+        { replacements: { cid: existing.customer_id, newAmount }, transaction: t }
+      )
+    } else if (wasCompleted && nowCompleted && Number(existing.order_amount) !== newAmount) {
+      // completed both before and after, adjust revenue delta
+      const delta = newAmount - Number(existing.order_amount)
+      if (delta !== 0) {
+        await sequelize.query(
+          `UPDATE customers SET total_amount = COALESCE(total_amount,0) + :delta, updated_at = NOW() WHERE customer_id = :cid`,
+          { replacements: { cid: existing.customer_id, delta }, transaction: t }
+        )
+      }
+    }
+
+    await t.commit()
+    return res.json(rows[0])
+  } catch (err) {
+    await t.rollback()
+    console.error('Update order failed:', err.message)
+    return res.status(500).json({ error: 'Failed to update order' })
+  }
+})
+
+// DELETE /api/orders/:id - delete an order and adjust aggregates when needed
+router.delete('/:id', async (req, res) => {
+  const t = await sequelize.transaction()
+  try {
+    const { id } = req.params
+    const [existingRows] = await sequelize.query(
+      'SELECT order_id, customer_id, order_amount, order_status FROM orders WHERE order_id = :id',
+      { replacements: { id }, transaction: t }
+    )
+    if (!existingRows.length) { await t.rollback(); return res.status(404).json({ error: 'Order not found' }) }
+    const existing = existingRows[0]
+
+    await sequelize.query('DELETE FROM orders WHERE order_id = :id', { replacements: { id }, transaction: t })
+
+    if (String(existing.order_status).toLowerCase() === 'completed') {
+      await sequelize.query(
+        `UPDATE customers SET total_orders = GREATEST(COALESCE(total_orders,0) - 1, 0), total_amount = COALESCE(total_amount,0) - :amount, updated_at = NOW() WHERE customer_id = :cid`,
+        { replacements: { cid: existing.customer_id, amount: Number(existing.order_amount) }, transaction: t }
+      )
+    }
+
+    await t.commit()
+    return res.status(204).send()
+  } catch (err) {
+    await t.rollback()
+    console.error('Delete order failed:', err.message)
+    return res.status(500).json({ error: 'Failed to delete order' })
+  }
+})
+
 module.exports = router
 
 

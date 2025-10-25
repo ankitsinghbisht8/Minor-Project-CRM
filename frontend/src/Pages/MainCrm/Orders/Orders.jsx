@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 
 const Orders = () => {
@@ -17,6 +17,30 @@ const Orders = () => {
   const [userQuery, setUserQuery] = useState('')
   const [userResults, setUserResults] = useState([])
   const [userLoading, setUserLoading] = useState(false)
+  const [edit, setEdit] = useState(null)
+  const [editError, setEditError] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [showEdit, setShowEdit] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    function onDocMouseDown(e) {
+      if (!menuOpenId) return
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpenId(null)
+      }
+    }
+    function onDocKeyDown(e) {
+      if (e.key === 'Escape') setMenuOpenId(null)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    document.addEventListener('keydown', onDocKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown)
+      document.removeEventListener('keydown', onDocKeyDown)
+    }
+  }, [menuOpenId])
 
   const params = useMemo(() => {
     const p = { page, limit }
@@ -101,6 +125,7 @@ const Orders = () => {
                 <th className="px-4 py-2 text-left text-gray-500">Status</th>
                 <th className="px-4 py-2 text-left text-gray-500">Payment</th>
                 <th className="px-4 py-2 text-left text-gray-500">Category</th>
+                <th className="px-4 py-2 text-right text-gray-500">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -112,18 +137,90 @@ const Orders = () => {
                   <td className="px-4 py-2">{o.order_status}</td>
                   <td className="px-4 py-2">{o.payment_method}</td>
                   <td className="px-4 py-2">{o.category || '-'}</td>
+                  <td className="px-4 py-2 text-right">
+                    <div className="relative inline-block text-left" ref={menuOpenId === o.order_id ? menuRef : null}>
+                      <button className="px-2 py-1 rounded hover:bg-gray-100" onClick={() => setMenuOpenId(menuOpenId === o.order_id ? null : o.order_id)}>⋯</button>
+                      {menuOpenId === o.order_id && (
+                        <div className="absolute right-0 mt-2 w-28 rounded-md border bg-white shadow-lg z-10">
+                          <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50" onClick={() => {
+                            setEdit({ order_id: o.order_id, order_amount: o.order_amount, category: o.category || '', order_status: o.order_status, payment_method: o.payment_method })
+                            setEditError(null)
+                            setShowEdit(true)
+                            setMenuOpenId(null)
+                          }}>Edit</button>
+                          <button className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-red-600" onClick={async () => {
+                            setMenuOpenId(null)
+                            const ok = window.confirm('Delete this order?')
+                            if (!ok) return
+                            try{
+                              const base = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '')
+                              await axios.delete(`${base}/api/orders/${o.order_id}`, { withCredentials: true })
+                              const res = await axios.get(`${base}/api/orders`, { params, withCredentials: true })
+                              setOrders(res.data.data || []); setTotal(res.data.total || 0)
+                            }catch(e){
+                              alert(e.response?.data?.error || 'Failed to delete order')
+                            }
+                          }}>Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
               {!orders.length && (
-                <tr><td className="px-4 py-6 text-gray-500" colSpan={6}>No orders</td></tr>
+                <tr><td className="px-4 py-6 text-gray-500" colSpan={7}>No orders</td></tr>
               )}
             </tbody>
           </table>
+
 
           <div className="mt-4 flex items-center justify-between">
             <button className="px-3 py-1 rounded border text-sm" onClick={()=> setPage(p=> Math.max(1,p-1))} disabled={page===1}>Previous</button>
             <div className="text-sm text-gray-600">Page {page}</div>
             <button className="px-3 py-1 rounded border text-sm" onClick={()=> setPage(p=> (p*limit<total ? p+1 : p))} disabled={page*limit>=total}>Next</button>
+          </div>
+        </div>
+      )}
+
+      {showEdit && edit && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-3">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold mb-4">Edit Order</h3>
+            {editError && <div className="text-sm text-red-600 mb-2">{editError}</div>}
+            <div className="grid grid-cols-1 gap-3">
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Amount" type="number" value={edit.order_amount ?? ''} onChange={(e)=> setEdit(prev => ({ ...(prev||{}), order_amount: e.target.value }))} />
+              <input className="border rounded px-3 py-2 text-sm" placeholder="Category" value={edit.category ?? ''} onChange={(e)=> setEdit(prev => ({ ...(prev||{}), category: e.target.value }))} />
+              <select className="border rounded px-3 py-2 text-sm" value={edit.order_status || 'Completed'} onChange={(e)=> setEdit(prev => ({ ...(prev||{}), order_status: e.target.value }))}>
+                <option>Completed</option>
+                <option>Pending</option>
+                <option>Cancelled</option>
+                <option>Returned</option>
+              </select>
+              <select className="border rounded px-3 py-2 text-sm" value={edit.payment_method || 'Card'} onChange={(e)=> setEdit(prev => ({ ...(prev||{}), payment_method: e.target.value }))}>
+                <option>Card</option>
+                <option>Cash</option>
+                <option>UPI</option>
+                <option>Wallet</option>
+                <option>NetBanking</option>
+              </select>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button className="px-3 py-1 rounded border text-sm" onClick={()=> setShowEdit(false)}>Cancel</button>
+              <button className="px-3 py-1 rounded bg-gray-900 text-white text-sm disabled:opacity-50" disabled={saving} onClick={async ()=>{
+                try{
+                  if (!edit?.order_id) throw new Error('Order ID missing')
+                  setSaving(true); setEditError(null)
+                  const base = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000').replace(/\/$/, '')
+                  const body = { ...edit }
+                  delete body.order_id
+                  await axios.put(`${base}/api/orders/${edit.order_id}`, body, { withCredentials: true })
+                  const res = await axios.get(`${base}/api/orders`, { params, withCredentials: true })
+                  setOrders(res.data.data || []); setTotal(res.data.total || 0)
+                  setShowEdit(false)
+                }catch(e){ setEditError(e.response?.data?.error || e.message || 'Failed to update order') }
+                finally{ setSaving(false) }
+              }}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
           </div>
         </div>
       )}
