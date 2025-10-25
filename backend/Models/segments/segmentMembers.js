@@ -12,14 +12,14 @@ const SegmentMembers = sequelize.define('SegmentMembers', {
         allowNull: false,
         references: {
             model: 'customers',
-            key: 'id'
+            key: 'customer_id'
         }
     },
     segmentId: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
-            model: 'Segments',
+            model: 'segments',
             key: 'id'
         }
     }
@@ -33,3 +33,5 @@ const SegmentMembers = sequelize.define('SegmentMembers', {
         }
     ]
 });
+
+module.exports = SegmentMembers;

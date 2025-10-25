@@ -361,16 +361,79 @@ async function getDatasetSummary() {
     FROM cust, rec, visits, loc;`
   );
   const row = summ[0] || {};
+
+  // Order distributions (run separately)
+  const [catRows] = await sequelize.query(
+    `SELECT json_agg(x) AS categories FROM (
+        SELECT COALESCE(category,'') AS category, COUNT(*)::int AS cnt
+        FROM orders
+        GROUP BY COALESCE(category,'')
+        ORDER BY cnt DESC
+        LIMIT 10
+     ) x`
+  );
+  const [statusRows] = await sequelize.query(
+    `SELECT json_agg(y) AS status FROM (
+        SELECT order_status AS status, COUNT(*)::int AS cnt
+        FROM orders
+        GROUP BY order_status
+        ORDER BY cnt DESC
+     ) y`
+  );
+  const [paymentRows] = await sequelize.query(
+    `SELECT json_agg(z) AS payments FROM (
+        SELECT payment_method AS payment, COUNT(*)::int AS cnt
+        FROM orders
+        GROUP BY payment_method
+        ORDER BY cnt DESC
+     ) z`
+  );
+
+  const categories = Array.isArray(catRows) && catRows[0]?.categories ? catRows[0].categories : [];
+  const status = Array.isArray(statusRows) && statusRows[0]?.status ? statusRows[0].status : [];
+  const payments = Array.isArray(paymentRows) && paymentRows[0]?.payments ? paymentRows[0].payments : [];
+
+  // Sample rows
+  const [topSpenders] = await sequelize.query(
+    `SELECT customer_id, full_name, total_orders, total_amount, age, location
+     FROM customers
+     ORDER BY total_amount DESC NULLS LAST
+     LIMIT 5`
+  );
+  const [newCustomers] = await sequelize.query(
+    `SELECT customer_id, full_name, total_orders, total_amount, age, location, created_at
+     FROM customers
+     ORDER BY created_at DESC NULLS LAST
+     LIMIT 5`
+  );
+  const [churnCandidates] = await sequelize.query(
+    `WITH last_o AS (
+       SELECT c.customer_id,
+              MAX(CASE WHEN o.order_status='Completed' THEN o.order_date END) AS last_completed
+       FROM customers c
+       LEFT JOIN orders o ON o.customer_id = c.customer_id
+       GROUP BY c.customer_id
+     )
+     SELECT c.customer_id, c.full_name, c.total_orders, c.total_amount, c.age, c.location,
+            COALESCE(EXTRACT(DAY FROM NOW() - last_o.last_completed), 999999)::int AS days_since_last_completed
+     FROM customers c
+     JOIN last_o ON last_o.customer_id = c.customer_id
+     ORDER BY days_since_last_completed DESC
+     LIMIT 5`
+  );
+
   return {
     customers: row.cust?.customers || 0,
-    avg_orders: String(row.cust?.avg_orders || '0'),
-    avg_spend: String(row.cust?.avg_spend || '0'),
-    max_spend: String(row.cust?.max_spend || '0'),
-    min_spend: String(row.cust?.min_spend || '0'),
-    avg_age: String(row.cust?.avg_age || '0'),
+    avg_orders: Number(row.cust?.avg_orders || 0),
+    avg_spend: Number(row.cust?.avg_spend || 0),
+    max_spend: Number(row.cust?.max_spend || 0),
+    min_spend: Number(row.cust?.min_spend || 0),
+    avg_age: Number(row.cust?.avg_age || 0),
     days_since_last_any: row.rec?.days_since_last_any || null,
-    avg_visits: String(row.visits?.avg_visits || '0'),
+    avg_visits: Number(row.visits?.avg_visits || 0),
     top_locations: row.loc?.top_locations || [],
+    distributions: { categories, status, payments },
+    samples: { top_spenders: topSpenders || [], new_customers: newCustomers || [], churn_candidates: churnCandidates || [] }
   };
 }
 
@@ -392,28 +455,37 @@ function coerceSuggestionRules(rules) {
 }
 
 function fallbackSuggestions(summary) {
-  return [
+  const avgOrders = Number(summary.avg_orders || 0);
+  const avgSpend = Number(summary.avg_spend || 0);
+  const maxSpend = Number(summary.max_spend || 0);
+  const topLoc = Array.isArray(summary.top_locations) && summary.top_locations[0]?.location ? summary.top_locations[0].location : '';
+  const vipSpend = Math.max(10000, Math.round(Math.max(avgSpend * 2, maxSpend * 0.6)));
+  const loyalOrders = Math.max(5, Math.ceil(avgOrders * 1.5));
+  const loyalSpend = Math.max(5000, Math.round(avgSpend * 1.5));
+  const churnDays = Math.max(180, Number(summary.days_since_last_any || 180));
+
+  const out = [
     {
       name: 'VIP Spenders',
       description: 'Top spenders with high lifetime value',
       rules: [
-        { field: 'totalSpend', operator: 'gte', value: '10000' },
-        { field: 'totalOrders', operator: 'gte', value: '10' }
+        { field: 'totalSpend', operator: 'gte', value: String(vipSpend) },
+        { field: 'totalOrders', operator: 'gte', value: String(Math.max(10, Math.ceil(avgOrders * 2))) }
       ]
     },
     {
       name: 'Loyal Regulars',
       description: 'Frequent buyers with steady orders',
       rules: [
-        { field: 'totalOrders', operator: 'gte', value: '5' },
-        { field: 'totalSpend', operator: 'gte', value: '5000' }
+        { field: 'totalOrders', operator: 'gte', value: String(loyalOrders) },
+        { field: 'totalSpend', operator: 'gte', value: String(loyalSpend) }
       ]
     },
     {
       name: 'Churn Risk',
       description: 'Customers with long inactivity',
       rules: [
-        { field: 'lastPurchase', operator: 'lte', value: '180' }
+        { field: 'lastPurchase', operator: 'lte', value: String(churnDays) }
       ]
     },
     {
@@ -424,18 +496,42 @@ function fallbackSuggestions(summary) {
       ]
     }
   ];
+  if (topLoc) {
+    out.push({
+      name: `${topLoc} Shoppers`,
+      description: `Customers located in ${topLoc}`,
+      rules: [ { field: 'location', operator: 'eq', value: topLoc } ]
+    });
+  }
+  return out;
 }
 
 // POST /api/rag/recommendations { limit? }
 router.post('/recommendations', async (req, res) => {
   try {
     const summary = await getDatasetSummary();
-    // Ask Gemini to propose 3-6 segment suggestions with strict schema
-    const prompt = `You are a CRM segmentation expert. Given the dataset summary below, propose 3-6 audience segment suggestions.
-Return STRICT JSON array. Each item must be: {"name": string, "description": string, "rules": Array<{"field": "totalSpend"|"totalOrders"|"visits"|"lastPurchase"|"registrationDate"|"age"|"location", "operator": "gte"|"lte"|"eq"|"gt"|"lt"|"contains"|"not_contains", "value": string}>}.
-No markdown, no explanations. Only JSON.
+    // Provide summary plus distributions and sample rows to LLM
+    const context = {
+      summary: {
+        customers: summary.customers,
+        avg_orders: summary.avg_orders,
+        avg_spend: summary.avg_spend,
+        max_spend: summary.max_spend,
+        min_spend: summary.min_spend,
+        avg_age: summary.avg_age,
+        days_since_last_any: summary.days_since_last_any,
+        avg_visits: summary.avg_visits,
+        top_locations: summary.top_locations
+      },
+      distributions: summary.distributions,
+      samples: summary.samples
+    };
+    const prompt = `You are a CRM segmentation expert. Using the dataset context below (aggregates, distributions, and sampled rows), propose 3-6 audience segment suggestions tailored to this data.
+Return STRICT JSON array only. Each item must be:
+{"name": string, "description": string, "rules": Array<{"field": "totalSpend"|"totalOrders"|"visits"|"lastPurchase"|"registrationDate"|"age"|"location", "operator": "gte"|"lte"|"eq"|"gt"|"lt"|"contains"|"not_contains", "value": string}>}.
+No markdown, no commentary.
 
-Summary:\n${JSON.stringify(summary)}\n`;
+Context:\n${JSON.stringify(context).slice(0, 12000)}\n`;
     let raw = '';
     if (hasGemini) {
       const result = await llmModel.generateContent(prompt);

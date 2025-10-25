@@ -7,6 +7,7 @@ const Segments = require('../Models/segments/Segments');
 const SegmentRules = require('../Models/segments/segmentRules');
 const SegmentMetaData = require('../Models/segments/segmentMetaData');
 const SegmentMembers = require('../Models/segments/segmentMembers');
+const Campaign = require('../Models/campaigns');
 const Users = require('../Models/users');
 
 // Get all created segments
@@ -563,21 +564,27 @@ router.put('/segments/:id', async (req, res) => {
 
 // Delete segment
 router.delete('/segments/:id', async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { id } = req.params;
-        
-        const segment = await Segments.findByPk(id);
+
+        const segment = await Segments.findByPk(id, { transaction: t });
         if (!segment) {
+            await t.rollback();
             return res.status(404).json({ error: 'Segment not found' });
         }
 
-        // Delete related records
-        await SegmentRules.destroy({ where: { id: segment.segmentRulesId } });
-        await SegmentMetaData.destroy({ where: { id: segment.segmentMetaDataId } });
-        await Segments.destroy({ where: { id } });
+        // Delete dependent rows first to satisfy FK constraints
+        await SegmentMembers.destroy({ where: { segmentId: id }, transaction: t });
+        await Campaign.destroy({ where: { segmentId: id }, transaction: t });
+        await Segments.destroy({ where: { id }, transaction: t });
+        await SegmentRules.destroy({ where: { id: segment.segmentRulesId }, transaction: t });
+        await SegmentMetaData.destroy({ where: { id: segment.segmentMetaDataId }, transaction: t });
 
+        await t.commit();
         res.json({ success: true, message: 'Segment deleted successfully' });
     } catch (err) {
+        await t.rollback();
         console.error('Segment deletion failed:', err.message);
         res.status(500).json({ error: 'Segment deletion failed' });
     }
