@@ -19,11 +19,13 @@ import { useNavigate } from 'react-router-dom'
 import { logout } from '../../../redux/slices/authslice'
 import { useDarkMode } from '../../../contexts/DarkModeContext'
 import { Snackbar, Alert, CircularProgress, Backdrop } from '@mui/material'
+import Chatbot from '../../../components/Chatbot'
 
 const DashBoard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -75,6 +77,8 @@ const DashBoard = () => {
   const handleCloseSnackbar = () => {
     setSnackbar(prev => ({ ...prev, open: false }))
   }
+
+  const toggleChatbot = () => setIsChatbotOpen(v => !v)
 
   const getUserDisplayName = () => {
     if (user?.name) {
@@ -299,6 +303,36 @@ const DashBoard = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Floating Chatbot Button */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2 }}
+        className="fixed bottom-6 right-6 z-40"
+      >
+        <motion.button
+          onClick={toggleChatbot}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-white text-xl hover:shadow-3xl transition-all duration-300 ${
+            isChatbotOpen 
+              ? 'bg-gradient-to-r from-red-500 to-red-600' 
+              : 'bg-gradient-to-r from-primary-500 to-purple-600'
+          }`}
+          aria-label={isChatbotOpen ? 'Close assistant' : 'Open assistant'}
+          title={isChatbotOpen ? 'Close assistant' : 'Open assistant'}
+        >
+          {isChatbotOpen ? (
+            <span className="text-lg">×</span>
+          ) : (
+            <span className="text-lg">💬</span>
+          )}
+        </motion.button>
+      </motion.div>
+
+      {/* Chatbot Component */}
+      <Chatbot isOpen={isChatbotOpen} onToggle={toggleChatbot} />
     </div>
   )
 }
